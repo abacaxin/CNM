@@ -47,9 +47,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id).innerHTML = rows.length ? rows.map((row) => `<article class="admin-list__item"><div>${markup(row)}</div><div class="list-actions"><button class="btn btn--ghost btn--sm" data-action="edit" data-collection="${collection}" data-id="${row.id}">Editar</button><button class="btn btn--danger btn--sm" data-action="delete" data-collection="${collection}" data-id="${row.id}">Excluir</button></div></article>`).join('') : '<p class="admin-empty">Nenhum item cadastrado.</p>';
   }
 
+  function getF1Points(position) {
+    const pointsTable = {
+      1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1
+    };
+    return pointsTable[position] || 0;
+  }
+
   function renderResultEntries() {
     const container = document.getElementById('resultEntriesContainer');
     container.innerHTML = '';
+    
+    // Pega os pilotos já selecionados
+    const selectedDrivers = new Map();
+    for (let pos = 1; pos <= 22; pos++) {
+      const select = document.querySelector(`select[name="driver-${pos}"]`);
+      if (select && select.value) selectedDrivers.set(pos, select.value);
+    }
     
     for (let pos = 1; pos <= 22; pos++) {
       const posDiv = document.createElement('div');
@@ -64,14 +78,30 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const select = document.createElement('select');
       select.name = `driver-${pos}`;
-      select.innerHTML = options(state.drivers, (driver) => `#${driver.number} ${driver.name}`);
+      const currentValue = selectedDrivers.get(pos) || '';
+      
+      let optionsHtml = '<option value="">Selecione</option>';
+      state.drivers.forEach(driver => {
+        // Não mostra pilotos já selecionados em outras posições
+        const isSelectedElsewhere = Array.from(selectedDrivers.values()).includes(driver.id) && driver.id !== currentValue;
+        if (!isSelectedElsewhere) {
+          optionsHtml += `<option value="${driver.id}">#${driver.number} ${driver.name}</option>`;
+        }
+      });
+      select.innerHTML = optionsHtml;
+      select.value = currentValue;
       select.style.gridColumn = '1';
       
       const pointsInput = document.createElement('input');
       pointsInput.type = 'number';
       pointsInput.name = `points-${pos}`;
+      pointsInput.value = getF1Points(pos);
       pointsInput.placeholder = 'Pontos';
       pointsInput.style.gridColumn = '2';
+      pointsInput.readOnly = true;
+      pointsInput.style.backgroundColor = '#1a1a1a';
+      pointsInput.style.cursor = 'not-allowed';
+      pointsInput.style.opacity = '0.7';
       
       let timeInput = null;
       if (pos <= 3) {
@@ -86,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
       posDiv.appendChild(select);
       posDiv.appendChild(pointsInput);
       if (timeInput) posDiv.appendChild(timeInput);
+      
+      select.addEventListener('change', () => renderResultEntries());
       
       container.appendChild(posDiv);
     }

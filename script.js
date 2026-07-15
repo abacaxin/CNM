@@ -514,11 +514,23 @@ function initTeamStructure(){
 }
 
 function initSponsors(){
-  const SPONSORS = ['Toyota gr', 'Arthur', 'Pablo', 'Klein', 'MP'];
+  const SPONSORS_DATA = [
+    { name: 'Toyota gr', type: 'sponsor' },
+    { name: 'Arthur', type: 'sponsor' },
+    { name: 'Pablo', type: 'sponsor' },
+    { name: 'Klein', type: 'sponsor' },
+    { name: 'MP', type: 'sponsor' },
+    { name: 'NGP', type: 'partnership' },
+    { name: 'TWC', type: 'partnership' }
+  ];
+  
   const container = document.getElementById('sponsorsGrid');
-  container.innerHTML = SPONSORS.map(sponsor => `
-    <div class="sponsor-card">
-      <p class="sponsor-card__name">${sponsor}</p>
+  container.innerHTML = SPONSORS_DATA.map(item => `
+    <div class="sponsor-card sponsor-card--${item.type}">
+      <div class="sponsor-card__inner">
+        <p class="sponsor-card__name">${item.name}</p>
+        <span class="sponsor-card__badge">${item.type === 'partnership' ? 'Parceria' : 'Patrocinador'}</span>
+      </div>
     </div>
   `).join('');
 }
@@ -590,13 +602,41 @@ function initWinner(){
    */
 function initTeams(){
   const grid = document.getElementById('teamsGrid');
-  grid.innerHTML = TEAMS_DATA.map(team => `
-    <div class="team-card" style="--team-color:${team.color}">
-      <span class="team-card__swatch"></span>
-      <p class="team-card__name">${team.name}</p>
-      <p class="team-card__base">${team.base}</p>
-    </div>
-  `).join('');
+  grid.innerHTML = TEAMS_DATA.map(team => {
+    const teamDrivers = DRIVERS_DATA.filter(driver => driver.team === team.name);
+    return `
+      <div class="team-card" style="--team-color:${team.color}">
+        <div class="team-card__content">
+          <span class="team-card__swatch"></span>
+          <p class="team-card__name">${team.name}</p>
+          <p class="team-card__base">${team.base}</p>
+        </div>
+        <div class="team-card__drivers">
+          ${teamDrivers.map(driver => `
+            <div class="team-driver">
+              <div class="team-driver__number">#${driver.number}</div>
+              <div class="team-driver__name">${driver.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // Adiciona interatividade aos cards
+  document.querySelectorAll('.team-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('is-active'));
+      card.classList.add('is-active');
+    });
+  });
+  
+  // Remove a classe active ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.team-card')) {
+      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('is-active'));
+    }
+  });
 }
 
 /* ===================================================================
