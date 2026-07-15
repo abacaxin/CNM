@@ -83,6 +83,8 @@ let STANDINGS_DATA = [
 ];
 
 /* ícones simples usados nos placeholders de mídia das notícias */
+let RESULTS_DATA = [];
+
 const ICONS = {
   flag: '<svg viewBox="0 0 24 24" width="34" height="34"><path d="M5 3v18M5 4h13l-3 4 3 4H5" fill="none" stroke="#E10600" stroke-width="1.8" stroke-linejoin="round"/></svg>',
   wrench: '<svg viewBox="0 0 24 24" width="34" height="34"><path d="M14.7 6.3a4 4 0 0 1-5 5L4 18l2 2 6.7-5.7a4 4 0 0 1 5-5L21 6l-3-3z" fill="none" stroke="#E10600" stroke-width="1.8" stroke-linejoin="round"/></svg>',
@@ -249,6 +251,47 @@ function initNewsSlider(){
 /* ===================================================================
    MÓDULO: CALENDÁRIO (card em destaque + lista + contagem regressiva)
    =================================================================== */
+function raceDateValue(race){
+  const source = race.dateTime || race.target;
+  const date = new Date(source || '');
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function raceTimestamp(race){
+  const date = raceDateValue(race);
+  return date ? date.getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function computeRaceStatus(race, referenceDate = new Date()){
+  const raceDate = raceDateValue(race);
+  if(!raceDate) return race.status || 'proxima';
+  const start = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate(), 12, 0, 0, 0, 0);
+  const end = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate() + 1, 0, 0, 0, 0);
+  if(referenceDate < start) return 'proxima';
+  if(referenceDate < end) return 'andamento';
+  return 'finalizada';
+}
+
+function normalizeRaceStatus(race){
+  const raceDate = raceDateValue(race);
+  const target = raceDate
+    ? `${raceDate.getFullYear()}-${String(raceDate.getMonth() + 1).padStart(2, '0')}-${String(raceDate.getDate()).padStart(2, '0')}T12:00:00`
+    : race.target;
+  return { ...race, target, status: computeRaceStatus(race) };
+}
+
+function sortRacesForLanding(races){
+  const now = Date.now();
+  return [...races].sort((a, b) => {
+    const timeA = raceTimestamp(a);
+    const timeB = raceTimestamp(b);
+    const aExpired = timeA < now && computeRaceStatus(a) === 'finalizada';
+    const bExpired = timeB < now && computeRaceStatus(b) === 'finalizada';
+    if(aExpired !== bExpired) return aExpired ? 1 : -1;
+    return aExpired ? timeB - timeA : timeA - timeB;
+  });
+}
+
 function initCalendar(){
   const listWrap = document.getElementById('raceList');
   const feature = {
@@ -263,13 +306,16 @@ function initCalendar(){
 
   const STATUS_LABEL = { proxima: 'Próxima', andamento: 'Ao vivo', finalizada: 'Finalizada' };
 
+  RACES_DATA = sortRacesForLanding(RACES_DATA.map(normalizeRaceStatus));
+  const STATUS_LABEL_AUTO = { proxima: 'A seguir', andamento: 'Em andamento', finalizada: 'Expirado' };
+
   listWrap.innerHTML = RACES_DATA.map((race, i) => `
     <div class="race-list__item" tabindex="0" data-index="${i}">
       <div class="race-item__info">
         <span class="race-item__name">${race.name}</span>
         <span class="race-item__date">${race.date} · ${race.time}</span>
       </div>
-      <span class="status-badge status-badge--${race.status === 'andamento' ? 'andamento' : race.status}">${STATUS_LABEL[race.status]}</span>
+      <span class="status-badge status-badge--${race.status === 'andamento' ? 'andamento' : race.status}">${STATUS_LABEL_AUTO[race.status]}</span>
     </div>
   `).join('');
 
@@ -314,7 +360,7 @@ function initCalendar(){
     feature.name.textContent = race.name;
     feature.date.textContent = race.date;
     feature.time.textContent = `${race.time} (horário local)`;
-    feature.badge.textContent = STATUS_LABEL[race.status];
+    feature.badge.textContent = STATUS_LABEL_AUTO[race.status];
     feature.badge.className = 'race-feature__badge' + (race.status === 'andamento' ? ' is-live' : race.status === 'finalizada' ? ' is-done' : '');
 
     if(race.status === 'proxima' && race.target){
@@ -373,7 +419,13 @@ function initHallOfFame(){
   }
 
   /* duplica o conjunto três vezes para permitir loop infinito suave */
-  const setHTML = DRIVERS_DATA.map(cardMarkup).join('');
+  const service = window.CNMFirebase;
+  const hallDrivers = DRIVERS_DATA.filter((driver) => service?.configured ? driver.showInHallOfFame === true : driver.showInHallOfFame !== false);
+  if(!hallDrivers.length){
+    track.innerHTML = '<p class="legends__empty">Nenhum piloto marcado para exibicao no Hall da Fama.</p>';
+    return;
+  }
+  const setHTML = hallDrivers.map(cardMarkup).join('');
   track.innerHTML = setHTML + setHTML + setHTML;
 
   let cards = Array.from(track.children);
@@ -383,7 +435,7 @@ function initHallOfFame(){
     /* largura de um conjunto completo (cards + gaps), calculada após o layout */
     const style = getComputedStyle(track);
     const gap = parseFloat(style.gap) || 26;
-    setWidth = cards.slice(0, DRIVERS_DATA.length).reduce((acc, el) => acc + el.getBoundingClientRect().width + gap, 0);
+    setWidth = cards.slice(0, hallDrivers.length).reduce((acc, el) => acc + el.getBoundingClientRect().width + gap, 0);
   }
 
   let offset = 0;
@@ -535,6 +587,59 @@ function initSponsors(){
   `).join('');
 }
 
+function initTeamStructure(){
+  const TEAM_DATA = [
+    { role: 'Dono Geral', members: ['David Tyson De Rossi Cardoso'], founder: true, tag: 'Direcao' },
+    { role: 'Admin', members: ['Pablo Gutemberg', 'Joao Delmon', 'JonSenna'], tag: 'Operacao' },
+    { role: 'Video Maker', members: ['Karakama', 'David'], tag: 'Midia' },
+    { role: 'Designer', members: ['Guilherme', 'David'], tag: 'Visual' },
+    { role: 'Programador', members: ['Dan'], tag: 'Tech' },
+    { role: 'Jornalista', members: ['David'], tag: 'Conteudo' },
+    { role: 'Parcerias', members: ['NGP', 'TWC'], tag: 'Relacoes' }
+  ];
+
+  const container = document.getElementById('teamStructure');
+  container.innerHTML = TEAM_DATA.map((role, index) => `
+    <article class="team-role${role.founder ? ' team-role--lead' : ''}" style="--i:${index + 1}">
+      <div class="team-role__meta">
+        <span class="team-role__index">${String(index + 1).padStart(2, '0')}</span>
+        <span class="team-role__tag">${role.tag}</span>
+      </div>
+      <p class="team-role__title">${role.role}</p>
+      <div class="team-role__members">
+        ${role.members.map((member) => `<p class="team-member${role.founder ? ' founder' : ''}"><span>${member.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span>${member}</p>`).join('')}
+      </div>
+    </article>
+  `).join('');
+}
+
+function initSponsors(){
+  const SPONSORS_DATA = [
+    { name: 'Toyota gr', type: 'sponsor', tier: 'Master' },
+    { name: 'Arthur', type: 'sponsor', tier: 'Apoio' },
+    { name: 'Pablo', type: 'sponsor', tier: 'Apoio' },
+    { name: 'Klein', type: 'sponsor', tier: 'Apoio' },
+    { name: 'MP', type: 'sponsor', tier: 'Apoio' },
+    { name: 'NGP', type: 'partnership', tier: 'Parceria' },
+    { name: 'TWC', type: 'partnership', tier: 'Parceria' }
+  ];
+
+  const container = document.getElementById('sponsorsGrid');
+  container.innerHTML = SPONSORS_DATA.map((item) => {
+    const monogram = item.name.split(' ').map((part) => part[0]).join('').slice(0, 3).toUpperCase();
+    return `
+      <article class="sponsor-card sponsor-card--${item.type}">
+        <div class="sponsor-card__shine"></div>
+        <div class="sponsor-card__mark">${monogram}</div>
+        <div class="sponsor-card__inner">
+          <span class="sponsor-card__badge">${item.tier}</span>
+          <p class="sponsor-card__name">${item.name}</p>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
 function initWinner(){
   const container = document.getElementById('winnerContainer');
   if (!container) return;
@@ -600,6 +705,95 @@ function initWinner(){
    MÓDULO: EQUIPES
    ===================================================================
    */
+function winnerImageMarkup(driver){
+  const initials = (driver.name || 'CNM').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  if(driver.photoUrl){
+    return `<img class="winner-card__image" src="${driver.photoUrl}" alt="${driver.name}" loading="lazy" onerror="this.replaceWith(this.nextElementSibling)"><div class="winner-card__placeholder">${initials}</div>`;
+  }
+  return `<div class="winner-card__placeholder">${initials}</div>`;
+}
+
+function getLatestWinner(){
+  const racesById = new Map(RACES_DATA.map((race) => [race.id, normalizeRaceStatus(race)]));
+  const finishedResults = RESULTS_DATA
+    .map((result) => ({ result, race: racesById.get(result.raceId) }))
+    .filter(({ result, race }) => result.entries?.length && (!race || race.status === 'finalizada'))
+    .sort((a, b) => raceTimestamp(b.race || {}) - raceTimestamp(a.race || {}));
+  const winnerEntry = finishedResults[0]?.result.entries.find((entry) => Number(entry.position) === 1) || finishedResults[0]?.result.entries[0];
+  return DRIVERS_DATA.find((driver) => driver.id === winnerEntry?.driverId) || DRIVERS_DATA[0];
+}
+
+function initWinner(){
+  const container = document.getElementById('winnerContainer');
+  if (!container) return;
+
+  const finishedRaces = RACES_DATA.map(normalizeRaceStatus).filter((race) => race.status === 'finalizada');
+  if (finishedRaces.length === 0) {
+    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhuma corrida finalizada ainda.</p>';
+    return;
+  }
+
+  const winner = getLatestWinner();
+  const latestResult = RESULTS_DATA
+    .filter((result) => result.entries?.length)
+    .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))[0];
+  const winnerEntry = latestResult?.entries?.find((entry) => entry.driverId === winner.id);
+  const lapTime = winnerEntry?.lapTime || '1:23.456';
+  const gapToSecond = '+0.234s';
+  const image = winnerImageMarkup(winner);
+
+  container.innerHTML = `
+    <div class="winner-card">
+      ${image}
+    </div>
+    <div class="winner-stats">
+      <div>
+        <p class="winner-name">${winner.name}</p>
+        <p class="winner-team">${winner.team}</p>
+      </div>
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat__label">Numero</span>
+          <span class="stat__value">#${winner.number}</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Volta Rapida</span>
+          <span class="stat__value">${lapTime}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="winner-flip-container">
+      <div class="winner-flip-card">
+        <div class="winner-flip-front">
+          ${image}
+          <div class="winner-flip-front__info">
+            <p class="winner-name">${winner.name}</p>
+            <p class="winner-team">${winner.team}</p>
+            <span class="winner-number">#${winner.number}</span>
+          </div>
+        </div>
+        <div class="winner-flip-back">
+          <div>
+            <p class="winner-name" style="font-size: 1.5rem; margin-bottom: 0;">${winner.name}</p>
+            <p class="winner-team">${winner.team}</p>
+          </div>
+          <div class="stat-row">
+            <div class="stat">
+              <span class="stat__label">Volta Rapida</span>
+              <span class="stat__value">${lapTime}</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">Gap 2o</span>
+              <span class="stat__value">${gapToSecond}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function initTeams(){
   const grid = document.getElementById('teamsGrid');
   grid.innerHTML = TEAMS_DATA.map(team => {
@@ -694,7 +888,8 @@ async function hydrateFirebaseData(){
   try {
     const data = await service.loadPublicData();
     if(data.news.length) NEWS_DATA = data.news;
-    if(data.races.length) RACES_DATA = data.races.map(localizedRace).sort((a, b) => new Date(a.target) - new Date(b.target));
+    if(data.races.length) RACES_DATA = sortRacesForLanding(data.races.map(localizedRace).map(normalizeRaceStatus));
+    if(data.results.length) RESULTS_DATA = data.results;
     if(data.teams.length) TEAMS_DATA = data.teams;
     if(data.drivers.length){
       const teamsById = new Map(data.teams.map(team => [team.id, team]));
@@ -702,6 +897,11 @@ async function hydrateFirebaseData(){
         const team = teamsById.get(driver.teamId) || {};
         return { ...driver, team: team.name || 'Equipe não cadastrada', color: driver.color || team.color || '#E10600', titles: driver.titles || 0, wins: driver.wins || 0, seasons: driver.seasons || 0 };
       });
+      DRIVERS_DATA = DRIVERS_DATA.map((driver) => ({
+        ...driver,
+        photoUrl: driver.photoUrl || '',
+        showInHallOfFame: driver.showInHallOfFame === true
+      }));
       STANDINGS_DATA = data.standings.map(row => {
         const team = teamsById.get(row.teamId) || {};
         return { ...row, team: team.name || 'Equipe não cadastrada', color: row.color || team.color || '#E10600' };

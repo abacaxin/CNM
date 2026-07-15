@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const service = window.CNMFirebase;
   const notice = document.getElementById('adminMessage');
   const state = { news: [], races: [], teams: [], drivers: [], results: [] };
+  const resultDraft = {};
 
   const escapeHtml = (value) => String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   const show = (text, error = false) => { notice.textContent = text; notice.classList.toggle('is-error', error); };
@@ -34,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const snapshots = await Promise.all(names.map((name) => db().collection(name).get()));
     names.forEach((name, index) => { state[name] = snapshots[index].docs.map((doc) => ({ id: doc.id, ...doc.data() })); });
     state.news.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    state.races.sort((a, b) => String(a.dateTime || '').localeCompare(String(b.dateTime || '')));
+    state.races.sort((a, b) => raceTimestamp(a) - raceTimestamp(b));
     state.teams.sort((a, b) => String(a.name).localeCompare(String(b.name)));
     state.drivers.sort((a, b) => String(a.name).localeCompare(String(b.name)));
     render();
@@ -43,6 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
   function teamName(teamId) { return state.teams.find((team) => team.id === teamId)?.name || 'Equipe não cadastrada'; }
   function driverName(driverId) { return state.drivers.find((driver) => driver.id === driverId)?.name || 'Piloto não cadastrado'; }
   function options(items, label) { return `<option value="">Selecione</option>${items.map((item) => `<option value="${item.id}">${escapeHtml(label(item))}</option>`).join('')}`; }
+  function raceTimestamp(race) {
+    const time = new Date(race.dateTime || '').getTime();
+    return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+  }
+  function raceStatus(dateTime, referenceDate = new Date()) {
+    const raceDate = new Date(dateTime || '');
+    if (Number.isNaN(raceDate.getTime())) return 'proxima';
+    const start = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate(), 12, 0, 0, 0);
+    const end = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate() + 1, 0, 0, 0, 0);
+    if (referenceDate < start) return 'proxima';
+    if (referenceDate < end) return 'andamento';
+    return 'finalizada';
+  }
+  function raceStatusLabel(status) {
+    return ({ proxima: 'A seguir', andamento: 'Em andamento', finalizada: 'Expirado' })[status] || 'A seguir';
+  }
+  function scoringDriversCount(result) {
+    return (result.entries || []).filter((entry) => entry.driverId && Number(entry.points || 0) > 0).length;
+  }
   function renderList(id, collection, rows, markup) {
     document.getElementById(id).innerHTML = rows.length ? rows.map((row) => `<article class="admin-list__item"><div>${markup(row)}</div><div class="list-actions"><button class="btn btn--ghost btn--sm" data-action="edit" data-collection="${collection}" data-id="${row.id}">Editar</button><button class="btn btn--danger btn--sm" data-action="delete" data-collection="${collection}" data-id="${row.id}">Excluir</button></div></article>`).join('') : '<p class="admin-empty">Nenhum item cadastrado.</p>';
   }
@@ -123,6 +143,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function setDraftFromForm() {
+    for (let pos = 1; pos <= 22; pos++) {
+      const select = document.querySelector(`select[name="driver-${pos}"]`);
+      const timeInput = document.querySelector(`input[name="time-${pos}"]`);
+      resultDraft[pos] = {
+        driverId: select ? select.value : resultDraft[pos]?.driverId || '',
+        points: getF1Points(pos),
+        lapTime: timeInput ? timeInput.value : resultDraft[pos]?.lapTime || ''
+      };
+    }
+  }
+
+  function clearResultDraft() {
+    Object.keys(resultDraft).forEach((key) => delete resultDraft[key]);
+  }
+
+  function renderResultEntries() {
+    const container = document.getElementById('resultEntriesContainer');
+    setDraftFromForm();
+
+    const selectedDrivers = new Set();
+    for (let pos = 1; pos <= 22; pos++) {
+      if (resultDraft[pos]?.driverId) selectedDrivers.add(resultDraft[pos].driverId);
+    }
+
+    container.innerHTML = '';
+    for (let pos = 1; pos <= 22; pos++) {
+      const posDiv = document.createElement('div');
+      posDiv.style.display = 'grid';
+      posDiv.style.gridTemplateColumns = '1fr 1fr';
+      posDiv.style.gap = '0.5rem';
+      posDiv.style.alignItems = 'center';
+
+      const label = document.createElement('label');
+      label.style.gridColumn = '1 / -1';
+      label.textContent = `Posicao ${pos}`;
+
+      const select = document.createElement('select');
+      select.name = `driver-${pos}`;
+      const currentValue = resultDraft[pos]?.driverId || '';
+
+      let optionsHtml = '<option value="">Selecione</option>';
+      state.drivers.forEach((driver) => {
+        const isSelectedElsewhere = selectedDrivers.has(driver.id) && driver.id !== currentValue;
+        if (!isSelectedElsewhere) {
+          optionsHtml += `<option value="${driver.id}">#${escapeHtml(driver.number)} ${escapeHtml(driver.name)}</option>`;
+        }
+      });
+      select.innerHTML = optionsHtml;
+      select.value = currentValue;
+      select.style.gridColumn = '1';
+
+      const pointsInput = document.createElement('input');
+      pointsInput.type = 'number';
+      pointsInput.name = `points-${pos}`;
+      pointsInput.value = getF1Points(pos);
+      pointsInput.placeholder = 'Pontos';
+      pointsInput.style.gridColumn = '2';
+      pointsInput.readOnly = true;
+      pointsInput.style.backgroundColor = '#1a1a1a';
+      pointsInput.style.cursor = 'not-allowed';
+      pointsInput.style.opacity = '0.7';
+
+      let timeInput = null;
+      if (pos <= 3) {
+        timeInput = document.createElement('input');
+        timeInput.type = 'text';
+        timeInput.name = `time-${pos}`;
+        timeInput.placeholder = 'Tempo (ex: 1:23.456)';
+        timeInput.value = resultDraft[pos]?.lapTime || '';
+        timeInput.style.gridColumn = '1 / -1';
+        timeInput.addEventListener('input', () => {
+          resultDraft[pos] = { ...(resultDraft[pos] || {}), lapTime: timeInput.value };
+        });
+      }
+
+      posDiv.appendChild(label);
+      posDiv.appendChild(select);
+      posDiv.appendChild(pointsInput);
+      if (timeInput) posDiv.appendChild(timeInput);
+
+      select.addEventListener('change', () => {
+        resultDraft[pos] = { ...(resultDraft[pos] || {}), driverId: select.value, points: getF1Points(pos) };
+        renderResultEntries();
+      });
+
+      container.appendChild(posDiv);
+    }
+  }
+
   function render() {
     document.getElementById('driverTeam').innerHTML = options(state.teams, (team) => team.name);
     document.getElementById('resultRace').innerHTML = options(state.races, (race) => race.name);
@@ -131,6 +241,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList('driversList', 'drivers', state.drivers, (item) => `<strong>#${escapeHtml(item.number)} ${escapeHtml(item.name)}</strong><span>${escapeHtml(teamName(item.teamId))} · ID: ${escapeHtml(item.id)}</span>`);
     renderList('racesList', 'races', state.races, (item) => `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.dateTime)} · ${escapeHtml(item.status)}</span>`);
     renderList('resultsList', 'results', state.results, (item) => `<strong>${escapeHtml(state.races.find((race) => race.id === item.raceId)?.name || 'Etapa removida')}</strong><span>${(item.entries || []).length} pilotos pontuaram</span>`);
+    renderList('racesList', 'races', state.races, (item) => {
+      const status = raceStatus(item.dateTime);
+      return `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.dateTime)} - ${raceStatusLabel(status)}</span>`;
+    });
+    renderList('resultsList', 'results', state.results, (item) => `<strong>${escapeHtml(state.races.find((race) => race.id === item.raceId)?.name || 'Etapa removida')}</strong><span>${scoringDriversCount(item)} pilotos pontuaram</span>`);
     renderResultEntries();
   }
 
@@ -170,6 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
+    if (form.id === 'raceForm') {
+      delete data.status;
+    }
+
     if (form.id === 'resultForm') {
       const entries = [];
       for (let pos = 1; pos <= 22; pos++) {
@@ -219,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (id) await db().collection(collection).doc(id).set(data, { merge: true });
       else await db().collection(collection).add(data);
       form.reset(); form.elements.id.value = '';
+      if (form.id === 'resultForm') clearResultDraft();
       show('Alteração salva e publicada.');
       await refresh();
     } catch (error) { show(error.message || 'Não foi possível salvar a alteração.', true); }
@@ -227,6 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.reset-form').forEach((button) => button.addEventListener('click', () => {
     const form = button.closest('form'); form.reset(); form.elements.id.value = '';
+    if (form.id === 'resultForm') {
+      clearResultDraft();
+      renderResultEntries();
+    }
   }));
 
   document.addEventListener('click', async (event) => {
@@ -261,17 +385,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     form.elements.id.value = id;
     if (collection === 'results') {
-      renderResultEntries();
+      clearResultDraft();
       if (item.entries) {
         item.entries.forEach((entry) => {
-          const driverSelect = form.elements[`driver-${entry.position}`];
-          const pointsInput = form.elements[`points-${entry.position}`];
-          const timeInput = form.elements[`time-${entry.position}`];
-          if (driverSelect) driverSelect.value = entry.driverId;
-          if (pointsInput) pointsInput.value = entry.points;
-          if (timeInput && entry.lapTime) timeInput.value = entry.lapTime;
+          resultDraft[entry.position] = {
+            driverId: entry.driverId || '',
+            points: Number(entry.points || getF1Points(entry.position)),
+            lapTime: entry.lapTime || ''
+          };
         });
       }
+      document.getElementById('resultEntriesContainer').innerHTML = '';
+      renderResultEntries();
     }
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
