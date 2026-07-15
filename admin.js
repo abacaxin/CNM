@@ -74,103 +74,50 @@ document.addEventListener('DOMContentLoaded', () => {
     return pointsTable[position] || 0;
   }
 
-  function renderResultEntries() {
-    const container = document.getElementById('resultEntriesContainer');
-    container.innerHTML = '';
-    
-    // Pega os pilotos já selecionados
-    const selectedDrivers = new Map();
-    for (let pos = 1; pos <= 22; pos++) {
-      const select = document.querySelector(`select[name="driver-${pos}"]`);
-      if (select && select.value) selectedDrivers.set(pos, select.value);
-    }
-    
-    for (let pos = 1; pos <= 22; pos++) {
-      const posDiv = document.createElement('div');
-      posDiv.style.display = 'grid';
-      posDiv.style.gridTemplateColumns = '1fr 1fr';
-      posDiv.style.gap = '0.5rem';
-      posDiv.style.alignItems = 'center';
-      
-      const label = document.createElement('label');
-      label.style.gridColumn = '1 / -1';
-      label.textContent = `Posição ${pos}`;
-      
-      const select = document.createElement('select');
-      select.name = `driver-${pos}`;
-      const currentValue = selectedDrivers.get(pos) || '';
-      
-      let optionsHtml = '<option value="">Selecione</option>';
-      state.drivers.forEach(driver => {
-        // Não mostra pilotos já selecionados em outras posições
-        const isSelectedElsewhere = Array.from(selectedDrivers.values()).includes(driver.id) && driver.id !== currentValue;
-        if (!isSelectedElsewhere) {
-          optionsHtml += `<option value="${driver.id}">#${driver.number} ${driver.name}</option>`;
-        }
-      });
-      select.innerHTML = optionsHtml;
-      select.value = currentValue;
-      select.style.gridColumn = '1';
-      
-      const pointsInput = document.createElement('input');
-      pointsInput.type = 'number';
-      pointsInput.name = `points-${pos}`;
-      pointsInput.value = getF1Points(pos);
-      pointsInput.placeholder = 'Pontos';
-      pointsInput.style.gridColumn = '2';
-      pointsInput.readOnly = true;
-      pointsInput.style.backgroundColor = '#1a1a1a';
-      pointsInput.style.cursor = 'not-allowed';
-      pointsInput.style.opacity = '0.7';
-      
-      let timeInput = null;
-      if (pos <= 3) {
-        timeInput = document.createElement('input');
-        timeInput.type = 'text';
-        timeInput.name = `time-${pos}`;
-        timeInput.placeholder = 'Tempo (ex: 1:23.456)';
-        timeInput.style.gridColumn = '1 / -1';
-      }
-      
-      posDiv.appendChild(label);
-      posDiv.appendChild(select);
-      posDiv.appendChild(pointsInput);
-      if (timeInput) posDiv.appendChild(timeInput);
-      
-      select.addEventListener('change', () => renderResultEntries());
-      
-      container.appendChild(posDiv);
-    }
+  /* monta as <option> de um seletor de piloto, escondendo pilotos já
+     escolhidos em outras posições, mas mantendo o valor atual selecionável */
+  function driverOptionsHtml(currentValue, takenIds) {
+    let html = '<option value="">Selecione</option>';
+    state.drivers.forEach((driver) => {
+      if (takenIds.has(driver.id) && driver.id !== currentValue) return;
+      const selected = driver.id === currentValue ? ' selected' : '';
+      html += `<option value="${driver.id}"${selected}>#${escapeHtml(driver.number)} ${escapeHtml(driver.name)}</option>`;
+    });
+    return html;
   }
 
-  function setDraftFromForm() {
+  /* atualiza apenas as opções dos seletores existentes (sem recriá-los),
+     preservando o valor selecionado de cada posição e o foco do usuário */
+  function refreshDriverOptions() {
+    const selects = [];
     for (let pos = 1; pos <= 22; pos++) {
-      const select = document.querySelector(`select[name="driver-${pos}"]`);
-      const timeInput = document.querySelector(`input[name="time-${pos}"]`);
-      resultDraft[pos] = {
-        driverId: select ? select.value : resultDraft[pos]?.driverId || '',
-        points: getF1Points(pos),
-        lapTime: timeInput ? timeInput.value : resultDraft[pos]?.lapTime || ''
-      };
+      const el = document.querySelector(`select[name="driver-${pos}"]`);
+      if (el) selects.push(el);
     }
+    const taken = new Set(selects.map((el) => el.value).filter(Boolean));
+    selects.forEach((el) => {
+      const current = el.value;
+      el.innerHTML = driverOptionsHtml(current, taken);
+      el.value = current;
+    });
   }
 
   function clearResultDraft() {
     Object.keys(resultDraft).forEach((key) => delete resultDraft[key]);
   }
 
+  /* monta as 22 linhas de posição uma única vez; a troca de piloto apenas
+     atualiza as opções dos demais seletores, sem destruir/recriar os campos
+     (o que fazia a seleção "não ser aplicada") */
   function renderResultEntries() {
     const container = document.getElementById('resultEntriesContainer');
-    setDraftFromForm();
-
-    const selectedDrivers = new Set();
-    for (let pos = 1; pos <= 22; pos++) {
-      if (resultDraft[pos]?.driverId) selectedDrivers.add(resultDraft[pos].driverId);
-    }
-
     container.innerHTML = '';
+
     for (let pos = 1; pos <= 22; pos++) {
+      const currentValue = resultDraft[pos]?.driverId || '';
+
       const posDiv = document.createElement('div');
+      posDiv.className = 'result-entry';
       posDiv.style.display = 'grid';
       posDiv.style.gridTemplateColumns = '1fr 1fr';
       posDiv.style.gap = '0.5rem';
@@ -178,20 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const label = document.createElement('label');
       label.style.gridColumn = '1 / -1';
-      label.textContent = `Posicao ${pos}`;
+      label.textContent = `Posição ${pos}`;
 
       const select = document.createElement('select');
       select.name = `driver-${pos}`;
-      const currentValue = resultDraft[pos]?.driverId || '';
-
-      let optionsHtml = '<option value="">Selecione</option>';
-      state.drivers.forEach((driver) => {
-        const isSelectedElsewhere = selectedDrivers.has(driver.id) && driver.id !== currentValue;
-        if (!isSelectedElsewhere) {
-          optionsHtml += `<option value="${driver.id}">#${escapeHtml(driver.number)} ${escapeHtml(driver.name)}</option>`;
-        }
-      });
-      select.innerHTML = optionsHtml;
+      select.innerHTML = driverOptionsHtml(currentValue, new Set());
       select.value = currentValue;
       select.style.gridColumn = '1';
 
@@ -219,18 +157,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
+      select.addEventListener('change', () => {
+        resultDraft[pos] = { ...(resultDraft[pos] || {}), driverId: select.value, points: getF1Points(pos) };
+        refreshDriverOptions();
+      });
+
       posDiv.appendChild(label);
       posDiv.appendChild(select);
       posDiv.appendChild(pointsInput);
       if (timeInput) posDiv.appendChild(timeInput);
-
-      select.addEventListener('change', () => {
-        resultDraft[pos] = { ...(resultDraft[pos] || {}), driverId: select.value, points: getF1Points(pos) };
-        renderResultEntries();
-      });
-
       container.appendChild(posDiv);
     }
+
+    refreshDriverOptions();
   }
 
   function render() {
@@ -239,8 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList('newsList', 'news', state.news, (item) => `<strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.category)}</span>`);
     renderList('teamsList', 'teams', state.teams, (item) => `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.base)} · ${escapeHtml(item.id)}</span>`);
     renderList('driversList', 'drivers', state.drivers, (item) => `<strong>#${escapeHtml(item.number)} ${escapeHtml(item.name)}</strong><span>${escapeHtml(teamName(item.teamId))} · ID: ${escapeHtml(item.id)}</span>`);
-    renderList('racesList', 'races', state.races, (item) => `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.dateTime)} · ${escapeHtml(item.status)}</span>`);
-    renderList('resultsList', 'results', state.results, (item) => `<strong>${escapeHtml(state.races.find((race) => race.id === item.raceId)?.name || 'Etapa removida')}</strong><span>${(item.entries || []).length} pilotos pontuaram</span>`);
     renderList('racesList', 'races', state.races, (item) => {
       const status = raceStatus(item.dateTime);
       return `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.dateTime)} - ${raceStatusLabel(status)}</span>`;

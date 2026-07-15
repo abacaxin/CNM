@@ -281,15 +281,8 @@ function normalizeRaceStatus(race){
 }
 
 function sortRacesForLanding(races){
-  const now = Date.now();
-  return [...races].sort((a, b) => {
-    const timeA = raceTimestamp(a);
-    const timeB = raceTimestamp(b);
-    const aExpired = timeA < now && computeRaceStatus(a) === 'finalizada';
-    const bExpired = timeB < now && computeRaceStatus(b) === 'finalizada';
-    if(aExpired !== bExpired) return aExpired ? 1 : -1;
-    return aExpired ? timeB - timeA : timeA - timeB;
-  });
+  /* ordem cronológica: do GP mais próximo (data mais antiga) ao mais distante */
+  return [...races].sort((a, b) => raceTimestamp(a) - raceTimestamp(b));
 }
 
 function initCalendar(){
@@ -309,11 +302,17 @@ function initCalendar(){
   RACES_DATA = sortRacesForLanding(RACES_DATA.map(normalizeRaceStatus));
   const STATUS_LABEL_AUTO = { proxima: 'A seguir', andamento: 'Em andamento', finalizada: 'Expirado' };
 
+  /* texto de agenda tolerante a datas ainda não cadastradas */
+  function raceScheduleText(race){
+    const parts = [race.date, race.time].map(v => (v || '').trim()).filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Data a definir';
+  }
+
   listWrap.innerHTML = RACES_DATA.map((race, i) => `
     <div class="race-list__item" tabindex="0" data-index="${i}">
       <div class="race-item__info">
         <span class="race-item__name">${race.name}</span>
-        <span class="race-item__date">${race.date} · ${race.time}</span>
+        <span class="race-item__date">${raceScheduleText(race)}</span>
       </div>
       <span class="status-badge status-badge--${race.status === 'andamento' ? 'andamento' : race.status}">${STATUS_LABEL_AUTO[race.status]}</span>
     </div>
@@ -358,8 +357,8 @@ function initCalendar(){
   function paintFeature(race){
     feature.circuit.textContent = race.circuit;
     feature.name.textContent = race.name;
-    feature.date.textContent = race.date;
-    feature.time.textContent = `${race.time} (horário local)`;
+    feature.date.textContent = (race.date || '').trim() || 'Data a definir';
+    feature.time.textContent = (race.time || '').trim() ? `${race.time} (horário local)` : 'Horário a definir';
     feature.badge.textContent = STATUS_LABEL_AUTO[race.status];
     feature.badge.className = 'race-feature__badge' + (race.status === 'andamento' ? ' is-live' : race.status === 'finalizada' ? ' is-done' : '');
 
@@ -523,72 +522,6 @@ function initHallOfFame(){
    */
 function initTeamStructure(){
   const TEAM_DATA = [
-    {
-      role: 'Dono Geral',
-      members: ['David Tyson De Rossi Cardoso'],
-      founder: true
-    },
-    {
-      role: 'Admin',
-      members: ['Pablo Gutemberg', 'Joao Delmon', 'JonSenna']
-    },
-    {
-      role: 'Video Maker',
-      members: ['Karakama', 'David']
-    },
-    {
-      role: 'Designer',
-      members: ['Guilherme', 'David']
-    },
-    {
-      role: 'Programador',
-      members: ['Dan']
-    },
-    {
-      role: 'Jornalista',
-      members: ['David']
-    },
-    {
-      role: 'Parcerias',
-      members: ['NGP', 'TWC']
-    }
-  ];
-  
-  const container = document.getElementById('teamStructure');
-  container.innerHTML = TEAM_DATA.map(role => `
-    <div class="team-role">
-      <p class="team-role__title">${role.role}</p>
-      <div class="team-role__members">
-        ${role.members.map(member => `<p class="team-member${role.founder ? ' founder' : ''}">${member}</p>`).join('')}
-      </div>
-    </div>
-  `).join('');
-}
-
-function initSponsors(){
-  const SPONSORS_DATA = [
-    { name: 'Toyota gr', type: 'sponsor' },
-    { name: 'Arthur', type: 'sponsor' },
-    { name: 'Pablo', type: 'sponsor' },
-    { name: 'Klein', type: 'sponsor' },
-    { name: 'MP', type: 'sponsor' },
-    { name: 'NGP', type: 'partnership' },
-    { name: 'TWC', type: 'partnership' }
-  ];
-  
-  const container = document.getElementById('sponsorsGrid');
-  container.innerHTML = SPONSORS_DATA.map(item => `
-    <div class="sponsor-card sponsor-card--${item.type}">
-      <div class="sponsor-card__inner">
-        <p class="sponsor-card__name">${item.name}</p>
-        <span class="sponsor-card__badge">${item.type === 'partnership' ? 'Parceria' : 'Patrocinador'}</span>
-      </div>
-    </div>
-  `).join('');
-}
-
-function initTeamStructure(){
-  const TEAM_DATA = [
     { role: 'Dono Geral', members: ['David Tyson De Rossi Cardoso'], founder: true, tag: 'Direcao' },
     { role: 'Admin', members: ['Pablo Gutemberg', 'Joao Delmon', 'JonSenna'], tag: 'Operacao' },
     { role: 'Video Maker', members: ['Karakama', 'David'], tag: 'Midia' },
@@ -600,14 +533,15 @@ function initTeamStructure(){
 
   const container = document.getElementById('teamStructure');
   container.innerHTML = TEAM_DATA.map((role, index) => `
-    <article class="team-role${role.founder ? ' team-role--lead' : ''}" style="--i:${index + 1}">
+    <article class="team-role${role.founder ? ' team-role--lead' : ''}" style="--i:${index + 1}" data-index="${String(index + 1).padStart(2, '0')}">
+      ${role.founder ? '<span class="team-role__ribbon">Fundador</span>' : ''}
       <div class="team-role__meta">
-        <span class="team-role__index">${String(index + 1).padStart(2, '0')}</span>
         <span class="team-role__tag">${role.tag}</span>
+        <span class="team-role__count">${role.members.length} ${role.members.length === 1 ? 'membro' : 'membros'}</span>
       </div>
       <p class="team-role__title">${role.role}</p>
       <div class="team-role__members">
-        ${role.members.map((member) => `<p class="team-member${role.founder ? ' founder' : ''}"><span>${member.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span>${member}</p>`).join('')}
+        ${role.members.map((member) => `<p class="team-member${role.founder ? ' founder' : ''}"><span class="team-member__avatar">${member.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><span class="team-member__name">${member}</span></p>`).join('')}
       </div>
     </article>
   `).join('');
@@ -634,77 +568,16 @@ function initSponsors(){
         <div class="sponsor-card__inner">
           <span class="sponsor-card__badge">${item.tier}</span>
           <p class="sponsor-card__name">${item.name}</p>
+          <span class="sponsor-card__type">${item.type === 'partnership' ? 'Parceria oficial' : 'Patrocinador'}</span>
         </div>
       </article>
     `;
   }).join('');
 }
 
-function initWinner(){
-  const container = document.getElementById('winnerContainer');
-  if (!container) return;
-  
-  const finishedRaces = RACES_DATA.filter(race => race.status === 'finalizada');
-  if (finishedRaces.length === 0) {
-    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhuma corrida finalizada ainda.</p>';
-    return;
-  }
-  
-  const winner = DRIVERS_DATA[0];
-  const lapTime = '1:23.456';
-  const gapToSecond = '+0.234s';
-  
-  container.innerHTML = `
-    <div class="winner-card">
-      <div class="winner-card__placeholder">🏁</div>
-    </div>
-    <div class="winner-stats">
-      <div>
-        <p class="winner-name">${winner.name}</p>
-        <p class="winner-team">${winner.team}</p>
-      </div>
-      <div class="stat-row">
-        <div class="stat">
-          <span class="stat__label">Volta Rapida</span>
-          <span class="stat__value">${lapTime}</span>
-        </div>
-        <div class="stat">
-          <span class="stat__label">Gap 2o</span>
-          <span class="stat__value">${gapToSecond}</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="winner-flip-container" style="grid-column: 1/-1; display: none;">
-      <div class="winner-flip-card">
-        <div class="winner-flip-front">
-          <div class="winner-card__placeholder">🏁</div>
-        </div>
-        <div class="winner-flip-back">
-          <div>
-            <p class="winner-name" style="font-size: 1.5rem; margin-bottom: 0;">${winner.name}</p>
-            <p class="winner-team">${winner.team}</p>
-          </div>
-          <div class="stat-row">
-            <div class="stat">
-              <span class="stat__label">Volta Rapida</span>
-              <span class="stat__value">${lapTime}</span>
-            </div>
-            <div class="stat">
-              <span class="stat__label">Gap 2o</span>
-              <span class="stat__value">${gapToSecond}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 /* ===================================================================
-   MÓDULO: EQUIPES
-   ===================================================================
-   */
+   MÓDULO: ÚLTIMO VENCEDOR
+   =================================================================== */
 function winnerImageMarkup(driver){
   const initials = (driver.name || 'CNM').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   if(driver.photoUrl){
