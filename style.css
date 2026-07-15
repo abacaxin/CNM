@@ -172,7 +172,7 @@ table{ border-collapse: collapse; width: 100%; }
   color: var(--c-muted);
 }
 
-.nav__list{ display: flex; gap: 8px; }
+.nav__list{ display: flex; gap: 8px; backdrop-filter: blur(10px); }
 .nav__link{
   position: relative;
   display: inline-block;
