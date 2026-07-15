@@ -1,0 +1,16 @@
+:root{
+--black:#0A0A0A;--dark:#161616;--metal:#252525;--red:#E10600;--white:#fff;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:var(--black);color:var(--white)}
+.header{position:fixed;top:0;width:100%;display:flex;justify-content:space-between;padding:20px 5%;background:rgba(10,10,10,.8);backdrop-filter:blur(10px)}
+nav a{color:white;text-decoration:none;margin-left:20px}
+.hero{height:100vh;background:url('https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1600&q=80') center/cover;display:flex;align-items:center;justify-content:center;position:relative}
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.65)}
+.hero-content{position:relative;text-align:center}
+button{background:var(--red);border:none;padding:15px 30px;color:white}
+section{padding:100px 5%}
+.calendar-card,.pilot,.slide{background:var(--dark);padding:20px;border-left:4px solid var(--red);margin:10px 0}
+.hall-track{display:flex;gap:20px;overflow:hidden}
+.reveal{opacity:0;transform:translateY(40px);transition:1s}
+.reveal.show{opacity:1;transform:none}
