@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Painel administrativo | CNM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Titillium+Web:ital,wght@0,600;0,700;0,900;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+  <header class="admin-header"><div class="container admin-header__inner">
+    <a class="logo" href="index.html"><span class="logo__wordmark"><span class="logo__wordmark-main">CNM</span><span class="logo__wordmark-sub">Central de controle</span></span></a>
+    <div class="admin-user"><span id="adminEmail"></span><button class="btn btn--ghost btn--sm" id="logoutButton">Sair</button></div>
+  </div></header>
+  <main class="container admin-main">
+    <div class="admin-intro"><p class="admin-kicker">TEMPORADA · OPERAÇÃO</p><h1>Centro de comando</h1><p class="admin-muted">Publique os dados que movem o portal. A classificação é calculada automaticamente a partir dos resultados.</p></div>
+    <p id="adminMessage" class="form-message" role="status"></p>
+    <nav class="admin-tabs" aria-label="Seções do painel">
+      <button class="admin-tab is-active" data-tab="news">Notícias</button><button class="admin-tab" data-tab="results">Resultados</button><button class="admin-tab" data-tab="grid">Grid</button><button class="admin-tab" data-tab="calendar">Calendário</button>
+    </nav>
+
+    <section class="admin-panel is-active" id="panel-news">
+      <div class="panel-head"><div><p class="admin-kicker">SETOR 01</p><h2>Notícias</h2></div><p>Crie, edite ou retire as chamadas do carrossel.</p></div>
+      <form id="newsForm" class="admin-form admin-form--grid" data-collection="news">
+        <input type="hidden" name="id"><label>Título<input name="title" required></label><label>Categoria<input name="category" required placeholder="Ex.: Bastidores"></label><label class="span-2">Resumo<textarea name="desc" rows="3" required></textarea></label><label>Ícone<select name="icon"><option value="flag">Bandeira</option><option value="wrench">Ferramenta</option><option value="mic">Microfone</option><option value="doc">Documento</option><option value="chip">Chip</option></select></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar notícia</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div>
+      </form>
+      <div id="newsList" class="admin-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-results">
+      <div class="panel-head"><div><p class="admin-kicker">SETOR 02</p><h2>Resultados</h2></div><p>Os pontos desta seção geram a tabela do campeonato no portal.</p></div>
+      <form id="resultForm" class="admin-form admin-form--grid" data-collection="results">
+        <input type="hidden" name="id"><label>Etapa<select name="raceId" id="resultRace" required></select></label><label>Data de publicação<input name="publishedAt" type="datetime-local"></label><label class="span-2">Chegada e pontos<textarea name="entriesText" rows="7" required placeholder="id-do-piloto, posição, pontos&#10;id-do-piloto, posição, pontos"></textarea><span class="field-help">Uma linha por piloto. Copie os IDs exibidos no Grid.</span></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar resultado</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div>
+      </form>
+      <div id="resultsList" class="admin-list"></div>
+    </section>
+
+    <section class="admin-panel" id="panel-grid">
+      <div class="panel-head"><div><p class="admin-kicker">SETOR 03</p><h2>Grid atual</h2></div><p>Cadastre equipes e pilotos. A posição e os pontos não são editados aqui.</p></div>
+      <div class="admin-split"><div><h3>Equipes</h3><form id="teamForm" class="admin-form" data-collection="teams"><input type="hidden" name="id"><label>Nome<input name="name" required></label><label>Sede/base<input name="base" required></label><label>Cor<input name="color" type="color" value="#E10600"></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar equipe</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="teamsList" class="admin-list"></div></div>
+      <div><h3>Pilotos</h3><form id="driverForm" class="admin-form admin-form--grid" data-collection="drivers"><input type="hidden" name="id"><label>Nome<input name="name" required></label><label>Número<input name="number" type="number" min="0" required></label><label>Sigla do país<input name="nat" maxlength="3" required placeholder="BRA"></label><label>Equipe<select name="teamId" id="driverTeam" required></select></label><label>Cor da equipe<input name="color" type="color" value="#E10600"></label><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar piloto</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="driversList" class="admin-list"></div></div></div>
+    </section>
+
+    <section class="admin-panel" id="panel-calendar">
+      <div class="panel-head"><div><p class="admin-kicker">SETOR 04</p><h2>Calendário</h2></div><p>Controle as etapas exibidas e seus estados.</p></div>
+      <form id="raceForm" class="admin-form admin-form--grid" data-collection="races"><input type="hidden" name="id"><label>Grande Prêmio<input name="name" required placeholder="GP Nexus Park"></label><label>Circuito<input name="circuit" required></label><label>Data e hora<input name="dateTime" type="datetime-local" required></label><label>Status<select name="status"><option value="proxima">Próxima</option><option value="andamento">Ao vivo</option><option value="finalizada">Finalizada</option></select></label><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar etapa</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="racesList" class="admin-list"></div>
+    </section>
+  </main>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="firebase-config.js"></script><script defer src="firebase-data.js"></script><script defer src="admin.js"></script>
+</body>
+</html>

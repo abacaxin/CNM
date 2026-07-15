@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNM — Copa Nexus Monospoto</title>
+<meta name="description" content="Portal oficial da CNM - Copa Nexus Monospoto. Notícias, calendário, hall da fama, equipes e classificação do campeonato de Monospoto Mobile.">
+
+<!-- Tipografia: Titillium Web (display/técnica, herança de HUDs de telemetria),
+     Inter (corpo de texto) e JetBrains Mono (dados/tempos, estilo torre de cronometragem) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ======================= HEADER ======================= -->
+<header class="header" id="siteHeader">
+  <div class="header__inner container">
+    <a href="#top" class="logo" aria-label="CNM - Copa Nexus Monospoto, página inicial">
+      <svg class="logo__mark" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true">
+        <path d="M2 34 L16 6 L24 6 L14 28 L26 28 L38 6" fill="none" stroke="#E10600" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+        <path d="M20 34 L34 34" stroke="#E10600" stroke-width="4"/>
+      </svg>
+      <span class="logo__wordmark">
+        <span class="logo__wordmark-main">CNM</span>
+        <span class="logo__wordmark-sub">Copa Nexus Monospoto</span>
+      </span>
+    </a>
+
+    <nav class="nav" id="siteNav" aria-label="Navegação principal">
+      <ul class="nav__list">
+        <li><a class="nav__link" href="#noticias">Notícias</a></li>
+        <li><a class="nav__link" href="#calendario">Calendário</a></li>
+        <li><a class="nav__link" href="#hall-da-fama">Hall da Fama</a></li>
+        <li><a class="nav__link" href="#equipes">Equipes</a></li>
+        <li><a class="nav__link" href="#classificacao">Classificação</a></li>
+        <li><a class="nav__link nav__link--admin" href="login.html">Admin</a></li>
+      </ul>
+    </nav>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu de navegação" aria-expanded="false" aria-controls="siteNav">
+      <span class="nav-toggle__bar"></span>
+      <span class="nav-toggle__bar"></span>
+      <span class="nav-toggle__bar"></span>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ======================= HERO ======================= -->
+  <section class="hero">
+    <div class="hero__backdrop" aria-hidden="true">
+      <div class="hero__grid"></div>
+      <div class="hero__arcs"></div>
+      <svg class="hero__trace" viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true">
+        <path class="hero__trace-path" d="M-50,520 L180,520 L260,380 L420,380 L480,460 L700,460 L760,240 L980,240 L1040,120 L1300,120" fill="none" stroke="#E10600" stroke-width="3"/>
+      </svg>
+      <div class="hero__vignette"></div>
+    </div>
+
+    <div class="hero__content container">
+      <p class="hero__eyebrow" data-animate>TEMPORADA 2026 · GRID OFICIAL</p>
+      <h1 class="hero__title">
+        <span class="hero__title-line" data-animate>CNM</span>
+        <span class="hero__title-line hero__title-line--accent" data-animate style="--d:1">COPA NEXUS MONOSPOTO</span>
+      </h1>
+      <p class="hero__slogan" data-animate style="--d:2">Onde nascem as lendas do Monospoto.</p>
+      <div class="hero__actions" data-animate style="--d:3">
+        <a href="#calendario" class="btn btn--primary">Ver Calendário</a>
+        <a href="#hall-da-fama" class="btn btn--ghost">Hall da Fama</a>
+      </div>
+    </div>
+
+    <button class="hero__scroll-cue" id="scrollCue" aria-label="Rolar para o próximo conteúdo">
+      <span></span>
+    </button>
+  </section>
+
+  <!-- ======================= NOTÍCIAS ======================= -->
+  <section class="section" id="noticias">
+    <div class="container">
+      <div class="section-head" data-animate>
+        <div class="sector" aria-hidden="true">
+          <span class="sector__tick"></span>
+          <span class="sector__line"><span class="sector__blip"></span></span>
+          <span class="sector__tick"></span>
+        </div>
+        <p class="section-head__eyebrow">SETOR 01 — REDAÇÃO CNM</p>
+        <h2 class="section-head__title">Últimas Notícias</h2>
+      </div>
+
+      <div class="slider" id="newsSlider" data-animate style="--d:1">
+        <div class="slider__viewport">
+          <div class="slider__track" id="sliderTrack">
+            <!-- slides injetados via script.js a partir de NEWS_DATA -->
+          </div>
+        </div>
+
+        <button class="slider__arrow slider__arrow--prev" id="prevSlide" aria-label="Notícia anterior">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg>
+        </button>
+        <button class="slider__arrow slider__arrow--next" id="nextSlide" aria-label="Próxima notícia">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 4 L17 12 L9 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg>
+        </button>
+
+        <div class="slider__dots" id="sliderDots" role="tablist" aria-label="Selecionar notícia"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CALENDÁRIO ======================= -->
+  <section class="section section--alt" id="calendario">
+    <div class="container">
+      <div class="section-head" data-animate>
+        <div class="sector" aria-hidden="true">
+          <span class="sector__tick"></span>
+          <span class="sector__line"><span class="sector__blip"></span></span>
+          <span class="sector__tick"></span>
+        </div>
+        <p class="section-head__eyebrow">SETOR 02 — CALENDÁRIO</p>
+        <h2 class="section-head__title">Calendário da Temporada</h2>
+      </div>
+
+      <div class="calendar">
+        <!-- Card dominante da próxima corrida -->
+        <article class="race-feature" id="raceFeature" data-animate style="--d:1">
+          <div class="race-feature__banner">
+            <svg class="race-feature__circuit" viewBox="0 0 300 160" preserveAspectRatio="none" aria-hidden="true">
+              <path id="featureCircuitPath" d="M20,120 L60,120 L80,80 L140,80 L150,60 L220,60 L235,90 L280,90 L280,40 L250,40" fill="none" stroke="#E10600" stroke-width="3"/>
+            </svg>
+            <span class="race-feature__badge" id="featureBadge">Próxima</span>
+          </div>
+
+          <div class="race-feature__body">
+            <p class="race-feature__circuit-name" id="featureCircuit">Circuito Deserto Rubro</p>
+            <h3 class="race-feature__name" id="featureName">GP Deserto Rubro</h3>
+
+            <div class="race-feature__meta">
+              <span id="featureDate">26 de julho, 2026</span>
+              <span class="race-feature__dot" aria-hidden="true">•</span>
+              <span id="featureTime">20:00 (horário local)</span>
+            </div>
+
+            <div class="race-feature__status" id="featureStatusBlock">
+              <!-- countdown ou mensagem de status injetado via JS -->
+            </div>
+
+            <a href="#" class="btn btn--primary btn--sm" id="featureCta">Ver detalhes</a>
+          </div>
+        </article>
+
+        <!-- Lista de próximas corridas -->
+        <div class="race-list" id="raceList" data-animate style="--d:2">
+          <!-- itens injetados via script.js a partir de RACES_DATA -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= HALL DA FAMA ======================= -->
+  <section class="section" id="hall-da-fama">
+    <div class="container">
+      <div class="section-head" data-animate>
+        <div class="sector" aria-hidden="true">
+          <span class="sector__tick"></span>
+          <span class="sector__line"><span class="sector__blip"></span></span>
+          <span class="sector__tick"></span>
+        </div>
+        <p class="section-head__eyebrow">SETOR 03 — LENDAS DO GRID</p>
+        <h2 class="section-head__title">Hall da Fama dos Pilotos</h2>
+      </div>
+    </div>
+
+    <div class="legends" data-animate style="--d:1">
+      <p class="legends__hint">arraste para explorar</p>
+      <div class="carousel" id="driverCarousel">
+        <div class="carousel__track" id="carouselTrack">
+          <!-- cards injetados via script.js a partir de DRIVERS_DATA (duplicados p/ loop infinito) -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= EQUIPES ======================= -->
+  <section class="section section--alt" id="equipes">
+    <div class="container">
+      <div class="section-head" data-animate>
+        <div class="sector" aria-hidden="true">
+          <span class="sector__tick"></span>
+          <span class="sector__line"><span class="sector__blip"></span></span>
+          <span class="sector__tick"></span>
+        </div>
+        <p class="section-head__eyebrow">SETOR 04 — ESCUDERIAS</p>
+        <h2 class="section-head__title">Equipes</h2>
+      </div>
+
+      <div class="teams" id="teamsGrid" data-animate style="--d:1">
+        <!-- cards injetados via script.js a partir de TEAMS_DATA -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= CLASSIFICAÇÃO ======================= -->
+  <section class="section" id="classificacao">
+    <div class="container">
+      <div class="section-head" data-animate>
+        <div class="sector" aria-hidden="true">
+          <span class="sector__tick"></span>
+          <span class="sector__line"><span class="sector__blip"></span></span>
+          <span class="sector__tick"></span>
+        </div>
+        <p class="section-head__eyebrow">SETOR 05 — APURAÇÃO</p>
+        <h2 class="section-head__title">Classificação de Pilotos</h2>
+      </div>
+
+      <div class="standings" data-animate style="--d:1">
+        <table class="standings__table">
+          <thead>
+            <tr>
+              <th scope="col">Pos.</th>
+              <th scope="col">Piloto</th>
+              <th scope="col">Equipe</th>
+              <th scope="col">Pontos</th>
+            </tr>
+          </thead>
+          <tbody id="standingsBody">
+            <!-- linhas injetadas via script.js a partir de STANDINGS_DATA -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ======================= RODAPÉ ======================= -->
+<footer class="footer">
+  <div class="container footer__grid">
+    <div class="footer__brand">
+      <a href="#top" class="logo logo--footer" aria-label="CNM - Copa Nexus Monospoto, página inicial">
+        <svg class="logo__mark" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true">
+          <path d="M2 34 L16 6 L24 6 L14 28 L26 28 L38 6" fill="none" stroke="#E10600" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>
+          <path d="M20 34 L34 34" stroke="#E10600" stroke-width="4"/>
+        </svg>
+        <span class="logo__wordmark">
+          <span class="logo__wordmark-main">CNM</span>
+          <span class="logo__wordmark-sub">Copa Nexus Monospoto</span>
+        </span>
+      </a>
+      <p class="footer__tagline">O portal oficial do campeonato de Monospoto Mobile.</p>
+
+      <div class="footer__social" aria-label="Redes sociais da CNM">
+        <a href="#" class="social-link" aria-label="CNM no Instagram">
+          <svg viewBox="0 0 24 24" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1" fill="currentColor"/></svg>
+        </a>
+        <a href="#" class="social-link" aria-label="CNM no YouTube">
+          <svg viewBox="0 0 24 24" width="18" height="18"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 9.2 L15.5 12 L10 14.8 Z" fill="currentColor"/></svg>
+        </a>
+        <a href="#" class="social-link" aria-label="CNM no X">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 4 L20 20 M20 4 L4 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </a>
+        <a href="#" class="social-link" aria-label="CNM no Discord">
+          <svg viewBox="0 0 24 24" width="18" height="18"><rect x="3" y="7" width="18" height="11" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="12.5" r="1.4" fill="currentColor"/><circle cx="15" cy="12.5" r="1.4" fill="currentColor"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <nav class="footer__links" aria-label="Links rápidos">
+      <p class="footer__links-title">Links rápidos</p>
+      <ul>
+        <li><a href="#noticias">Notícias</a></li>
+        <li><a href="#calendario">Calendário</a></li>
+        <li><a href="#hall-da-fama">Hall da Fama</a></li>
+        <li><a href="#equipes">Equipes</a></li>
+        <li><a href="#classificacao">Classificação</a></li>
+        <li><a href="#">Regulamento</a></li>
+        <li><a href="#">Contato</a></li>
+      </ul>
+    </nav>
+
+    <div class="footer__meta">
+      <p class="footer__season">Temporada 2026</p>
+      <p class="footer__copyright">© <span id="footerYear">2026</span> CNM — Copa Nexus Monospoto. Todos os direitos reservados.</p>
+    </div>
+  </div>
+</footer>
+
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script defer src="firebase-config.js"></script>
+<script defer src="firebase-data.js"></script>
+<script defer src="script.js"></script>
+</body>
+</html>

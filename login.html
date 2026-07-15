@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Entrar | CNM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Titillium+Web:ital,wght@0,600;0,700;0,900;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+  <main class="auth-layout">
+    <a class="logo" href="index.html" aria-label="Voltar para a CNM">
+      <span class="logo__wordmark"><span class="logo__wordmark-main">CNM</span><span class="logo__wordmark-sub">Copa Nexus Monospoto</span></span>
+    </a>
+    <section class="auth-card" aria-labelledby="login-title">
+      <p class="admin-kicker">ACESSO RESTRITO</p>
+      <h1 id="login-title">Central de controle</h1>
+      <p class="admin-muted">Entre com a conta autorizada para administrar a temporada.</p>
+      <form id="loginForm" class="admin-form">
+        <label>E-mail<input id="email" type="email" autocomplete="email" required></label>
+        <label>Senha<input id="password" type="password" autocomplete="current-password" required></label>
+        <p id="loginMessage" class="form-message" role="alert"></p>
+        <button class="btn btn--primary" type="submit">Entrar no painel</button>
+      </form>
+    </section>
+  </main>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+  <script defer src="firebase-data.js"></script>
+  <script defer src="login.js"></script>
+</body>
+</html>
