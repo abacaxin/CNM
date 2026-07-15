@@ -172,7 +172,7 @@ table{ border-collapse: collapse; width: 100%; }
   color: var(--c-muted);
 }
 
-.nav__list{ display: flex; gap: 8px; backdrop-filter: blur(10px); }
+.nav__list{ display: flex; gap: 8px; background-color: black;}
 .nav__link{
   position: relative;
   display: inline-block;
@@ -919,7 +919,7 @@ table{ border-collapse: collapse; width: 100%; }
   }
   .header.is-scrolled .nav{ top: var(--header-h-scrolled); }
   .nav.is-open{ transform: translateX(0); }
-  .nav__list{ flex-direction: column; width: 100%; gap: 0; }
+  .nav__list{ flex-direction: column; width: 100%; gap: 0; background-color: black }
   .nav__link{
     display: block;
     width: 100%;
