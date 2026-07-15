@@ -115,11 +115,13 @@ function initHeader(){
     nav.classList.remove('is-open');
     toggle.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
+    document.body.classList.remove('nav-open');
   }
   function openNav(){
     nav.classList.add('is-open');
     toggle.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('nav-open');
   }
 
   toggle.addEventListener('click', () => {
@@ -464,8 +466,128 @@ function initHallOfFame(){
 }
 
 /* ===================================================================
+   MÓDULO: NOSSO TIME
+   ===================================================================
+   */
+function initTeamStructure(){
+  const TEAM_DATA = [
+    {
+      role: 'Dono Geral',
+      members: ['David Tyson De Rossi Cardoso'],
+      founder: true
+    },
+    {
+      role: 'Admin',
+      members: ['Pablo Gutemberg', 'Joao Delmon', 'JonSenna']
+    },
+    {
+      role: 'Video Maker',
+      members: ['Karakama', 'David']
+    },
+    {
+      role: 'Designer',
+      members: ['Guilherme', 'David']
+    },
+    {
+      role: 'Programador',
+      members: ['Dan']
+    },
+    {
+      role: 'Jornalista',
+      members: ['David']
+    },
+    {
+      role: 'Parcerias',
+      members: ['NGP', 'TWC']
+    }
+  ];
+  
+  const container = document.getElementById('teamStructure');
+  container.innerHTML = TEAM_DATA.map(role => `
+    <div class="team-role">
+      <p class="team-role__title">${role.role}</p>
+      <div class="team-role__members">
+        ${role.members.map(member => `<p class="team-member${role.founder ? ' founder' : ''}">${member}</p>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function initSponsors(){
+  const SPONSORS = ['Toyota gr', 'Arthur', 'Pablo', 'Klein', 'MP'];
+  const container = document.getElementById('sponsorsGrid');
+  container.innerHTML = SPONSORS.map(sponsor => `
+    <div class="sponsor-card">
+      <p class="sponsor-card__name">${sponsor}</p>
+    </div>
+  `).join('');
+}
+
+function initWinner(){
+  const container = document.getElementById('winnerContainer');
+  if (!container) return;
+  
+  const finishedRaces = RACES_DATA.filter(race => race.status === 'finalizada');
+  if (finishedRaces.length === 0) {
+    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhuma corrida finalizada ainda.</p>';
+    return;
+  }
+  
+  const winner = DRIVERS_DATA[0];
+  const lapTime = '1:23.456';
+  const gapToSecond = '+0.234s';
+  
+  container.innerHTML = `
+    <div class="winner-card">
+      <div class="winner-card__placeholder">🏁</div>
+    </div>
+    <div class="winner-stats">
+      <div>
+        <p class="winner-name">${winner.name}</p>
+        <p class="winner-team">${winner.team}</p>
+      </div>
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat__label">Volta Rapida</span>
+          <span class="stat__value">${lapTime}</span>
+        </div>
+        <div class="stat">
+          <span class="stat__label">Gap 2o</span>
+          <span class="stat__value">${gapToSecond}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="winner-flip-container" style="grid-column: 1/-1; display: none;">
+      <div class="winner-flip-card">
+        <div class="winner-flip-front">
+          <div class="winner-card__placeholder">🏁</div>
+        </div>
+        <div class="winner-flip-back">
+          <div>
+            <p class="winner-name" style="font-size: 1.5rem; margin-bottom: 0;">${winner.name}</p>
+            <p class="winner-team">${winner.team}</p>
+          </div>
+          <div class="stat-row">
+            <div class="stat">
+              <span class="stat__label">Volta Rapida</span>
+              <span class="stat__value">${lapTime}</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">Gap 2o</span>
+              <span class="stat__value">${gapToSecond}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ===================================================================
    MÓDULO: EQUIPES
-   =================================================================== */
+   ===================================================================
+   */
 function initTeams(){
   const grid = document.getElementById('teamsGrid');
   grid.innerHTML = TEAMS_DATA.map(team => `
@@ -558,8 +680,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   initHeader();
   initNewsSlider();
   initCalendar();
+  initWinner();
   initHallOfFame();
   initTeams();
+  initTeamStructure();
+  initSponsors();
   initStandings();
   initSmoothAnchors();
   initFooterYear();
