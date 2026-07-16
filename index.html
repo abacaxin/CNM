@@ -235,8 +235,19 @@
         <h2 class="section-head__title">Equipes</h2>
       </div>
 
-      <div class="teams" id="teamsGrid" data-animate style="--d:1">
-        <!-- cards injetados via script.js a partir de TEAMS_DATA -->
+      <div class="slider slider--teams" id="teamsSlider" data-animate style="--d:1">
+        <div class="slider__viewport">
+          <div class="slider__track" id="teamsTrack">
+            <!-- slides injetados via script.js a partir de TEAMS_DATA -->
+          </div>
+        </div>
+        <button class="slider__arrow slider__arrow--prev" id="teamsPrev" aria-label="Equipe anterior">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 4 L7 12 L15 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg>
+        </button>
+        <button class="slider__arrow slider__arrow--next" id="teamsNext" aria-label="Próxima equipe">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 4 L17 12 L9 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg>
+        </button>
+        <div class="slider__dots" id="teamsDots" role="tablist" aria-label="Selecionar equipe"></div>
       </div>
     </div>
   </section>

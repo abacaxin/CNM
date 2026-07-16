@@ -178,12 +178,14 @@ function buildSlider({ sliderId, trackId, dotsId, prevId, nextId, total, dotLabe
   const slider = document.getElementById(sliderId);
   const track = document.getElementById(trackId);
   const dotsWrap = document.getElementById(dotsId);
-  const prevBtn = document.getElementById(prevId);
-  const nextBtn = document.getElementById(nextId);
+  const prevBtn = prevId ? document.getElementById(prevId) : null;
+  const nextBtn = nextId ? document.getElementById(nextId) : null;
+
+  if(!slider || !track || !dotsWrap) return;
 
   if(total <= 1){
-    prevBtn.style.display = 'none';
-    nextBtn.style.display = 'none';
+    if(prevBtn) prevBtn.style.display = 'none';
+    if(nextBtn) nextBtn.style.display = 'none';
     dotsWrap.innerHTML = '';
     return;
   }
@@ -217,8 +219,8 @@ function buildSlider({ sliderId, trackId, dotsId, prevId, nextId, total, dotLabe
     if(autoplayId) clearInterval(autoplayId);
   }
 
-  prevBtn.addEventListener('click', () => { prev(); startAutoplay(); });
-  nextBtn.addEventListener('click', () => { next(); startAutoplay(); });
+  if(prevBtn) prevBtn.addEventListener('click', () => { prev(); startAutoplay(); });
+  if(nextBtn) nextBtn.addEventListener('click', () => { next(); startAutoplay(); });
   dots.forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); startAutoplay(); }));
 
   slider.addEventListener('mouseenter', stopAutoplay);
@@ -756,60 +758,75 @@ function initWinner(){
 /* ===================================================================
    MÓDULO: EQUIPES
    =================================================================== */
+function getReadableTextColor(hexColor) {
+  const normalized = String(hexColor || '#E10600').trim();
+  const match = normalized.match(/^#?([a-f\d]{3}|[a-f\d]{6})$/i);
+  if(!match) return '#ffffff';
+
+  const hex = match[1].length === 3
+    ? match[1].split('').map((char) => char + char).join('')
+    : match[1];
+
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return luminance > 0.58 ? '#111111' : '#ffffff';
+}
+
 function initTeams(){
-  const grid = document.getElementById('teamsGrid');
+  const track = document.getElementById('teamsTrack');
+
+  if(!track) return;
 
   if(!TEAMS_DATA.length){
-    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhuma equipe cadastrada ainda.</p>';
+    track.innerHTML = '<div class="slider__slide"><div class="team-slider__empty">Nenhuma equipe cadastrada ainda.</div></div>';
+    buildSlider({ sliderId: 'teamsSlider', trackId: 'teamsTrack', dotsId: 'teamsDots', total: 1, dotLabel: 'Ir para equipe' });
     return;
   }
 
-  grid.innerHTML = TEAMS_DATA.map(team => {
-    const teamDrivers = DRIVERS_DATA.filter(driver => driver.team === team.name);
-    return `
-      <div class="team-card" style="--team-color:${escapeHtml(team.color || '#E10600')}">
-        <div class="team-card__content">
-          <span class="team-card__swatch"></span>
-          <p class="team-card__name">${escapeHtml(team.name)}</p>
-          <p class="team-card__base">${escapeHtml(team.base)}</p>
-        </div>
-        <div class="team-card__drivers">
-          <p class="team-card__drivers-title">${escapeHtml(team.name)}</p>
-          ${teamDrivers.length ? teamDrivers.map(driver => `
-            <div class="team-driver">
-              <span class="team-driver__name">${escapeHtml(driver.name)}</span>
-              <span class="team-driver__number">#${escapeHtml(driver.number)}</span>
-            </div>
-          `).join('') : '<p class="team-card__empty">Nenhum piloto cadastrado</p>'}
-        </div>
+  const slides = TEAMS_DATA.reduce((groups, team, index) => {
+    if(index % 4 === 0) groups.push([]);
+    groups[groups.length - 1].push(team);
+    return groups;
+  }, []);
+
+  track.innerHTML = slides.map((group) => `
+    <div class="slider__slide">
+      <div class="team-slider__grid">
+        ${group.map((team) => {
+          const teamDrivers = DRIVERS_DATA.filter((driver) => driver.team === team.name);
+          const textColor = getReadableTextColor(team.color || '#E10600');
+          return `
+            <article class="team-card" style="--team-color:${escapeHtml(team.color || '#E10600')}; --team-text:${escapeHtml(textColor)}">
+              <div class="team-card__header">
+                <span class="team-card__swatch"></span>
+                <div>
+                  <p class="team-card__name">${escapeHtml(team.name)}</p>
+                  <p class="team-card__base">${escapeHtml(team.base)}</p>
+                </div>
+              </div>
+              <div class="team-card__drivers">
+                <p class="team-card__drivers-title">Pilotos</p>
+                ${teamDrivers.length ? `
+                  <div class="team-card__driver-list">
+                    ${teamDrivers.map((driver) => `
+                      <div class="team-driver">
+                        <span class="team-driver__number">#${escapeHtml(driver.number)}</span>
+                        <span class="team-driver__name">${escapeHtml(driver.name)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : '<p class="team-card__empty">Nenhum piloto cadastrado</p>'}
+              </div>
+            </article>
+          `;
+        }).join('')}
       </div>
-    `;
-  }).join('');
+    </div>
+  `).join('');
 
-  /* fundo desfocado exibido enquanto um card está em destaque */
-  const backdrop = document.createElement('div');
-  backdrop.className = 'teams-backdrop';
-  document.body.appendChild(backdrop);
-
-  function closeTeamCards(){
-    document.querySelectorAll('.team-card').forEach(c => c.classList.remove('is-active'));
-    backdrop.classList.remove('is-active');
-  }
-
-  grid.querySelectorAll('.team-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const wasActive = card.classList.contains('is-active');
-      closeTeamCards();
-      if(!wasActive){
-        card.classList.add('is-active');
-        backdrop.classList.add('is-active');
-      }
-    });
-  });
-
-  backdrop.addEventListener('click', closeTeamCards);
-  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeTeamCards(); });
+  buildSlider({ sliderId: 'teamsSlider', trackId: 'teamsTrack', dotsId: 'teamsDots', prevId: 'teamsPrev', nextId: 'teamsNext', total: slides.length, dotLabel: 'Ir para equipe' });
 }
 
 /* ===================================================================
