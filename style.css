@@ -1547,7 +1547,7 @@ table{ border-collapse: collapse; width: 100%; }
   }
 
   .dmg-logo {
-    max-height: 220px;
+    max-height: 180px;
   }
 
   .subtext {
@@ -1571,7 +1571,7 @@ table{ border-collapse: collapse; width: 100%; }
   }
 
   .dmg-logo {
-    max-height: 180px;
+    max-height: 140px;
   }
 
   .subtext {
@@ -1607,6 +1607,9 @@ table{ border-collapse: collapse; width: 100%; }
     z-index: 9999;
     opacity: 1;
 }
+
+/* Esconde o conteúdo principal até o splash ser removido via JS */
+main{ display: none; }
 
 /* Wrapper da Logo */
 .logo-wrapper {
