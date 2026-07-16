@@ -77,7 +77,9 @@ table{ border-collapse: collapse; width: 100%; }
 }
 [data-animate].in-view{
   opacity: 1;
-  transform: translateY(0);
+  /* "none" (e não translateY(0)) para não criar stacking context —
+     o card de equipe em destaque precisa subir acima do fundo desfocado */
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -417,6 +419,14 @@ table{ border-collapse: collapse; width: 100%; }
   border: 1px solid var(--c-border);
 }
 .slide__media{ position: relative; min-height: 240px; }
+/* imagem da notícia cadastrada no painel (opcional) */
+.slide__image{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .slide__media .media-placeholder__icon{
   position: absolute; bottom: 22px; left: 24px;
   font-family: var(--f-mono);
@@ -729,6 +739,16 @@ table{ border-collapse: collapse; width: 100%; }
   font-size: 2.4rem;
   letter-spacing: .02em;
 }
+/* foto do piloto no plate (cobre monograma/ghost; badges ficam por cima) */
+.card-driver__photo{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  z-index: 1;
+}
 .card-driver__number{
   position: absolute;
   top: 10px; left: 12px;
@@ -736,6 +756,8 @@ table{ border-collapse: collapse; width: 100%; }
   font-weight: 700;
   font-size: .8rem;
   color: var(--team-color);
+  z-index: 2;
+  text-shadow: 0 1px 4px rgba(0,0,0,.65);
 }
 .card-driver__nat{
   position: absolute;
@@ -744,6 +766,8 @@ table{ border-collapse: collapse; width: 100%; }
   font-size: .68rem;
   letter-spacing: .08em;
   color: var(--c-muted);
+  z-index: 2;
+  text-shadow: 0 1px 4px rgba(0,0,0,.65);
 }
 .card-driver__name{ font-family: var(--f-display); font-weight: 700; font-size: 1.05rem; margin-bottom: 2px; }
 .card-driver__team{ font-family: var(--f-mono); font-size: .72rem; color: var(--team-color); margin-bottom: 16px; }
@@ -818,24 +842,63 @@ table{ border-collapse: collapse; width: 100%; }
 .team-card.is-active .team-card__drivers{
   opacity: 1;
 }
-.team-driver{
-  text-align: center;
-  color: var(--c-white);
-}
-.team-driver__number{
+.team-card__drivers-title{
   font-family: var(--f-mono);
-  font-weight: 700;
-  font-size: 1.8rem;
+  font-size: .68rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.75);
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,.28);
+}
+/* piloto no formato "Nome #Número" */
+.team-driver{
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
   color: var(--c-white);
 }
 .team-driver__name{
   font-family: var(--f-display);
   font-weight: 700;
-  font-size: .95rem;
+  font-size: 1.25rem;
   color: var(--c-white);
+  text-shadow: 0 1px 6px rgba(0,0,0,.35);
+}
+.team-driver__number{
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: rgba(255,255,255,.9);
+}
+.team-card__empty{
+  font-family: var(--f-mono);
+  font-size: .78rem;
+  color: rgba(255,255,255,.85);
 }
 .team-card:hover{ transform: translateY(-6px); box-shadow: 0 16px 34px -14px rgba(0,0,0,.6); }
 .team-card:hover::before{ opacity: 0.22; left: 0; }
+/* card em destaque: leve zoom acima do fundo desfocado */
+.team-card.is-active,
+.team-card.is-active:hover{
+  transform: scale(1.08);
+  z-index: 50;
+  box-shadow: 0 30px 70px -20px rgba(0,0,0,.85);
+}
+/* fundo desfocado enquanto um card de equipe está em destaque */
+.teams-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(5,5,5,.55);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s var(--ease);
+  z-index: 40;
+}
+.teams-backdrop.is-active{ opacity: 1; pointer-events: auto; }
 .team-card__swatch{ width: 34px; height: 6px; background: var(--team-color); margin-bottom: 18px; position: relative; z-index: 1; }
 .team-card__name{ font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; margin-bottom: 6px; position: relative; z-index: 1; }
 .team-card__base{ font-family: var(--f-mono); font-size: .76rem; color: var(--c-muted); position: relative; z-index: 1; }
@@ -1064,13 +1127,31 @@ table{ border-collapse: collapse; width: 100%; }
   color: var(--c-accent);
 }
 
-.team-structure{
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
+/* --------------------------- SLIDER COMPACTO ---------------------------
+   Usado por "Nosso Time" e "Patrocinadores e Parcerias": mesma navegação
+   do slider de notícias, com um card centralizado por slide. */
+.slider--compact .slider__viewport{ border-radius: 0; }
+.slider--compact .slider__slide{
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background: transparent;
+  border: 0;
+  min-height: 0;
+  padding: 8px 4px 14px;
 }
+.slider--compact .team-role{
+  width: min(620px, 100%);
+  min-height: 190px;
+  animation: none;
+}
+.slider--compact .sponsor-card{
+  width: min(460px, 100%);
+  min-height: 170px;
+}
+.slider--compact .slider__dots{ margin-top: 16px; }
+
 .team-role{
-  grid-column: span 4;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1088,7 +1169,6 @@ table{ border-collapse: collapse; width: 100%; }
   animation: teamCardIn .6s var(--ease) both;
   animation-delay: calc(var(--i, 1) * 65ms);
 }
-.team-role--lead{ grid-column: span 8; }
 /* faixa de acento superior */
 .team-role::before{
   content: '';
@@ -1109,7 +1189,7 @@ table{ border-collapse: collapse; width: 100%; }
   bottom: -26px;
   font-family: var(--f-display);
   font-weight: 900;
-  font-size: 8rem;
+  font-size: 6.5rem;
   line-height: 1;
   color: rgba(255,255,255,.035);
   letter-spacing: -.04em;
@@ -1165,7 +1245,7 @@ table{ border-collapse: collapse; width: 100%; }
 .team-role--lead .team-role__count{ display: none; }
 .team-role__title{
   font-family: var(--f-display);
-  font-size: clamp(1.2rem, 2vw, 1.8rem);
+  font-size: clamp(1.05rem, 1.6vw, 1.3rem);
   font-weight: 700;
   letter-spacing: 0;
   color: var(--c-white);
@@ -1217,7 +1297,7 @@ table{ border-collapse: collapse; width: 100%; }
   font-weight: 700;
 }
 .team-member__name{
-  font-size: .9rem;
+  font-size: .84rem;
   color: var(--c-white);
   font-weight: 500;
 }
@@ -1231,11 +1311,6 @@ table{ border-collapse: collapse; width: 100%; }
   to{ opacity: 1; transform: translateY(0); }
 }
 
-.sponsors-grid{
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 18px;
-}
 .sponsor-card{
   position: relative;
   display: flex;
@@ -1325,7 +1400,7 @@ table{ border-collapse: collapse; width: 100%; }
 }
 .sponsor-card__name{
   font-family: var(--f-display);
-  font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+  font-size: clamp(1.1rem, 1.8vw, 1.4rem);
   font-weight: 700;
   color: var(--c-white);
   text-align: left;
@@ -1472,11 +1547,6 @@ table{ border-collapse: collapse; width: 100%; }
   .card-driver{ width: 210px; }
 }
 
-@media (max-width: 1080px){
-  .team-role,
-  .team-role--lead{ grid-column: span 6; }
-}
-
 @media (max-width: 760px){
   .winner-container > .winner-card{ display: none; }
   .winner-container > .winner-flip-container{
@@ -1484,8 +1554,6 @@ table{ border-collapse: collapse; width: 100%; }
     max-width: 420px;
     margin: 0 auto;
   }
-  .team-structure{ grid-template-columns: 1fr; }
-  .team-role,
-  .team-role--lead{ grid-column: auto; min-height: 190px; }
-  .sponsors-grid{ grid-template-columns: 1fr; }
+  .slider--compact .team-role,
+  .slider--compact .team-role--lead{ min-height: 170px; }
 }

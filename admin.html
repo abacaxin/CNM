@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Titillium+Web:ital,wght@0,600;0,700;0,900;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="style.css?v=20260718">
+  <link rel="stylesheet" href="admin.css?v=20260718">
 </head>
 <body class="admin-body">
   <header class="admin-header"><div class="container admin-header__inner">
@@ -26,7 +26,7 @@
     <section class="admin-panel is-active" id="panel-news">
       <div class="panel-head"><div><p class="admin-kicker">SETOR 01</p><h2>Notícias</h2></div><p>Crie, edite ou retire as chamadas do carrossel.</p></div>
       <form id="newsForm" class="admin-form admin-form--grid" data-collection="news">
-        <input type="hidden" name="id"><label>Título<input name="title" required></label><label>Categoria<input name="category" required placeholder="Ex.: Bastidores"></label><label class="span-2">Resumo<textarea name="desc" rows="3" required></textarea></label><label>Ícone<select name="icon"><option value="flag">Bandeira</option><option value="wrench">Ferramenta</option><option value="mic">Microfone</option><option value="doc">Documento</option><option value="chip">Chip</option></select></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar notícia</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div>
+        <input type="hidden" name="id"><label>Título<input name="title" required></label><label>Categoria<input name="category" required placeholder="Ex.: Bastidores"></label><label class="span-2">Resumo<textarea name="desc" rows="3" required></textarea></label><label class="span-2">URL da Imagem<input name="imageUrl" type="url" placeholder="https://exemplo.com/imagem.jpg"><span class="field-help">Imagem exibida no card do carrossel (opcional)</span></label><label>Ícone<select name="icon"><option value="flag">Bandeira</option><option value="wrench">Ferramenta</option><option value="mic">Microfone</option><option value="doc">Documento</option><option value="chip">Chip</option></select></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar notícia</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div>
       </form>
       <div id="newsList" class="admin-list"></div>
     </section>
@@ -34,7 +34,7 @@
     <section class="admin-panel" id="panel-results">
       <div class="panel-head"><div><p class="admin-kicker">SETOR 02</p><h2>Resultados</h2></div><p>Os pontos desta seção geram a tabela do campeonato no portal.</p></div>
       <form id="resultForm" class="admin-form admin-form--grid" data-collection="results">
-        <input type="hidden" name="id"><label>Etapa<select name="raceId" id="resultRace" required></select></label><label>Data de publicação<input name="publishedAt" type="datetime-local"></label><div id="resultEntriesContainer" class="span-2" style="display: grid; gap: 1rem;"></div><input type="hidden" name="entriesText"><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar resultado</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div>
+        <input type="hidden" name="id"><label>Etapa<select name="raceId" id="resultRace" required></select></label><label>Data de publicação<input name="publishedAt" type="datetime-local"></label><div id="resultEntriesContainer" class="span-2" style="display: grid; gap: 1rem;"></div><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar resultado</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div>
       </form>
       <div id="resultsList" class="admin-list"></div>
     </section>
@@ -47,12 +47,12 @@
 
     <section class="admin-panel" id="panel-calendar">
       <div class="panel-head"><div><p class="admin-kicker">SETOR 04</p><h2>Calendário</h2></div><p>Controle as etapas exibidas e seus estados.</p></div>
-      <form id="raceForm" class="admin-form admin-form--grid" data-collection="races"><input type="hidden" name="id"><label>Grande Prêmio<input name="name" required placeholder="GP Nexus Park"></label><label>Circuito<input name="circuit" required></label><label>Data<input name="date" type="date" required></label><label>Hora<input name="time" type="time" required></label><input type="hidden" name="dateTime"><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar etapa</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="racesList" class="admin-list"></div>
+      <form id="raceForm" class="admin-form admin-form--grid" data-collection="races"><input type="hidden" name="id"><label>Grande Prêmio<input name="name" required placeholder="GP Nexus Park"></label><label>Circuito<input name="circuit" required></label><label>Data<input name="date" type="date" required><span class="field-help">Quali às 12:00 do dia; corrida das 00:00 às 00:00 do dia seguinte</span></label><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar etapa</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="racesList" class="admin-list"></div>
     </section>
   </main>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script defer src="firebase-config.js"></script><script defer src="firebase-data.js"></script><script defer src="admin.js"></script>
+  <script defer src="firebase-config.js?v=20260718"></script><script defer src="firebase-data.js?v=20260718"></script><script defer src="admin.js?v=20260718"></script>
 </body>
 </html>

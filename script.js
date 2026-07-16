@@ -1,11 +1,20 @@
 /* ===================================================================
    CNM — COPA NEXUS MONOSPOTO
-   script.js — dados mock da temporada + comportamento da interface
-   Organizado por módulos independentes, inicializados em DOMContentLoaded.
+   script.js — comportamento da landing page.
+   Os dados vêm do Firestore via window.CNMFirebase (firebase-data.js).
+   Os arrays *_DATA abaixo são apenas DEMONSTRAÇÃO: são usados somente
+   quando o Firebase não está configurado ou a carga falha — nunca são
+   misturados com dados reais.
    =================================================================== */
 
-/* --------------------------- DADOS MOCK ---------------------------
-   Em produção, substitua estes arrays por dados vindos de uma API. */
+const CNM = window.CNMFirebase || null;
+
+/* true quando a página está exibindo dados reais publicados pelo painel */
+let USING_LIVE_DATA = false;
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+
+/* --------------------------- DADOS DE DEMONSTRAÇÃO --------------------------- */
 
 let NEWS_DATA = [
   {
@@ -41,34 +50,34 @@ let NEWS_DATA = [
 ];
 
 let RACES_DATA = [
-  { name: 'GP Nexus Park',     circuit: 'Circuito Nexus Park',        date: '15 de março, 2026',  time: '19:30', status: 'finalizada', target: null },
-  { name: 'GP Costa Vermelha', circuit: 'Autódromo Costa Vermelha',   date: '5 de abril, 2026',   time: '20:00', status: 'finalizada', target: null },
-  { name: 'GP Serra Alta',     circuit: 'Circuito Serra Alta',        date: '26 de abril, 2026',  time: '18:00', status: 'finalizada', target: null },
-  { name: 'GP Baía Litoral',   circuit: 'Circuito Baía Litoral',      date: '17 de maio, 2026',   time: '19:00', status: 'finalizada', target: null },
-  { name: 'GP Distrito Nortis',circuit: 'Street Circuit Distrito Nortis', date: '14 de junho, 2026', time: '20:30', status: 'finalizada', target: null },
-  { name: 'GP Vale Ferrovia',  circuit: 'Circuito Vale Ferrovia',     date: '14 de julho, 2026',  time: '19:00', status: 'andamento', target: null },
-  { name: 'GP Deserto Rubro',  circuit: 'Circuito Deserto Rubro',     date: '26 de julho, 2026',  time: '20:00', status: 'proxima', target: '2026-07-26T20:00:00' },
-  { name: 'GP Altiplano',      circuit: 'Circuito Altiplano',         date: '16 de agosto, 2026', time: '19:30', status: 'proxima', target: '2026-08-16T19:30:00' }
+  { name: 'GP Nexus Park',      circuit: 'Circuito Nexus Park',            dateTime: '2026-03-15T19:30:00' },
+  { name: 'GP Costa Vermelha',  circuit: 'Autódromo Costa Vermelha',       dateTime: '2026-04-05T20:00:00' },
+  { name: 'GP Serra Alta',      circuit: 'Circuito Serra Alta',            dateTime: '2026-04-26T18:00:00' },
+  { name: 'GP Baía Litoral',    circuit: 'Circuito Baía Litoral',          dateTime: '2026-05-17T19:00:00' },
+  { name: 'GP Distrito Nortis', circuit: 'Street Circuit Distrito Nortis', dateTime: '2026-06-14T20:30:00' },
+  { name: 'GP Vale Ferrovia',   circuit: 'Circuito Vale Ferrovia',         dateTime: '2026-07-14T19:00:00' },
+  { name: 'GP Deserto Rubro',   circuit: 'Circuito Deserto Rubro',         dateTime: '2026-07-26T20:00:00' },
+  { name: 'GP Altiplano',       circuit: 'Circuito Altiplano',             dateTime: '2026-08-16T19:30:00' }
 ];
 
 let TEAMS_DATA = [
-  { name: 'Vortex Racing',         base: 'Sede em Costa Vermelha',  color: '#E10600' },
-  { name: 'Titan Motorsport',      base: 'Sede em Serra Alta',      color: '#3E7CB1' },
-  { name: 'Apex Dynamics',         base: 'Sede em Nexus Park',      color: '#E8B923' },
-  { name: 'Scuderia Rossa Nexus',  base: 'Sede em Distrito Nortis', color: '#C9414B' },
-  { name: 'Solstice GP',           base: 'Sede em Baía Litoral',    color: '#F2790C' },
-  { name: 'Nimbus Engineering',    base: 'Sede em Vale Ferrovia',   color: '#2FB8A6' }
+  { name: 'Vortex Racing',        base: 'Sede em Costa Vermelha',  color: '#E10600' },
+  { name: 'Titan Motorsport',     base: 'Sede em Serra Alta',      color: '#3E7CB1' },
+  { name: 'Apex Dynamics',        base: 'Sede em Nexus Park',      color: '#E8B923' },
+  { name: 'Scuderia Rossa Nexus', base: 'Sede em Distrito Nortis', color: '#C9414B' },
+  { name: 'Solstice GP',          base: 'Sede em Baía Litoral',    color: '#F2790C' },
+  { name: 'Nimbus Engineering',   base: 'Sede em Vale Ferrovia',   color: '#2FB8A6' }
 ];
 
 let DRIVERS_DATA = [
-  { name: 'Camila Rocha',     number: 1,  nat: 'BRA', team: 'Apex Dynamics',        color: '#E8B923', titles: 5, wins: 41, seasons: 11 },
-  { name: 'Rafael Duarte',    number: 7,  nat: 'BRA', team: 'Vortex Racing',        color: '#E10600', titles: 4, wins: 38, seasons: 9  },
-  { name: 'Marco Ferretti',   number: 22, nat: 'ITA', team: 'Scuderia Rossa Nexus', color: '#C9414B', titles: 3, wins: 33, seasons: 10 },
-  { name: 'Elena Kowalski',   number: 3,  nat: 'POL', team: 'Titan Motorsport',     color: '#3E7CB1', titles: 3, wins: 29, seasons: 8  },
-  { name: 'Lucas Meirelles',  number: 14, nat: 'BRA', team: 'Vortex Racing',        color: '#E10600', titles: 2, wins: 19, seasons: 7  },
-  { name: 'Kenji Arata',      number: 44, nat: 'JPN', team: 'Apex Dynamics',        color: '#E8B923', titles: 2, wins: 21, seasons: 7  },
-  { name: 'Aisha Bello',      number: 9,  nat: 'NGA', team: 'Solstice GP',          color: '#F2790C', titles: 1, wins: 14, seasons: 6  },
-  { name: 'Henrik Sørensen',  number: 27, nat: 'DNK', team: 'Titan Motorsport',     color: '#3E7CB1', titles: 1, wins: 11, seasons: 5  }
+  { name: 'Camila Rocha',    number: 1,  nat: 'BRA', team: 'Apex Dynamics',        color: '#E8B923', titles: 5, wins: 41, seasons: 11 },
+  { name: 'Rafael Duarte',   number: 7,  nat: 'BRA', team: 'Vortex Racing',        color: '#E10600', titles: 4, wins: 38, seasons: 9  },
+  { name: 'Marco Ferretti',  number: 22, nat: 'ITA', team: 'Scuderia Rossa Nexus', color: '#C9414B', titles: 3, wins: 33, seasons: 10 },
+  { name: 'Elena Kowalski',  number: 3,  nat: 'POL', team: 'Titan Motorsport',     color: '#3E7CB1', titles: 3, wins: 29, seasons: 8  },
+  { name: 'Lucas Meirelles', number: 14, nat: 'BRA', team: 'Vortex Racing',        color: '#E10600', titles: 2, wins: 19, seasons: 7  },
+  { name: 'Kenji Arata',     number: 44, nat: 'JPN', team: 'Apex Dynamics',        color: '#E8B923', titles: 2, wins: 21, seasons: 7  },
+  { name: 'Aisha Bello',     number: 9,  nat: 'NGA', team: 'Solstice GP',          color: '#F2790C', titles: 1, wins: 14, seasons: 6  },
+  { name: 'Henrik Sørensen', number: 27, nat: 'DNK', team: 'Titan Motorsport',     color: '#3E7CB1', titles: 1, wins: 11, seasons: 5  }
 ];
 
 let STANDINGS_DATA = [
@@ -82,9 +91,9 @@ let STANDINGS_DATA = [
   { pos: 8, name: 'Henrik Sørensen', team: 'Titan Motorsport',     color: '#3E7CB1', points: 96  }
 ];
 
-/* ícones simples usados nos placeholders de mídia das notícias */
 let RESULTS_DATA = [];
 
+/* ícones simples usados nos placeholders de mídia das notícias */
 const ICONS = {
   flag: '<svg viewBox="0 0 24 24" width="34" height="34"><path d="M5 3v18M5 4h13l-3 4 3 4H5" fill="none" stroke="#E10600" stroke-width="1.8" stroke-linejoin="round"/></svg>',
   wrench: '<svg viewBox="0 0 24 24" width="34" height="34"><path d="M14.7 6.3a4 4 0 0 1-5 5L4 18l2 2 6.7-5.7a4 4 0 0 1 5-5L21 6l-3-3z" fill="none" stroke="#E10600" stroke-width="1.8" stroke-linejoin="round"/></svg>',
@@ -162,37 +171,29 @@ function initScrollReveal(){
 }
 
 /* ===================================================================
-   MÓDULO: NOTÍCIAS (slider automático + manual + swipe)
+   FÁBRICA DE SLIDER (setas + dots + autoplay + swipe)
+   Reutilizada por Notícias, Nosso Time e Patrocinadores.
    =================================================================== */
-function initNewsSlider(){
-  const track = document.getElementById('sliderTrack');
-  const dotsWrap = document.getElementById('sliderDots');
-  const prevBtn = document.getElementById('prevSlide');
-  const nextBtn = document.getElementById('nextSlide');
-  const slider = document.getElementById('newsSlider');
+function buildSlider({ sliderId, trackId, dotsId, prevId, nextId, total, dotLabel }){
+  const slider = document.getElementById(sliderId);
+  const track = document.getElementById(trackId);
+  const dotsWrap = document.getElementById(dotsId);
+  const prevBtn = document.getElementById(prevId);
+  const nextBtn = document.getElementById(nextId);
 
-  track.innerHTML = NEWS_DATA.map(item => `
-    <div class="slider__slide">
-      <div class="slide__media media-placeholder">
-        <span class="media-placeholder__icon">${ICONS[item.icon] || ''}</span>
-        <span class="media-placeholder__icon">${item.category}</span>
-      </div>
-      <div class="slide__body">
-        <span class="slide__category">${item.category}</span>
-        <h3 class="slide__title">${item.title}</h3>
-        <p class="slide__desc">${item.desc}</p>
-        <a href="#" class="slide__link">Ler mais →</a>
-      </div>
-    </div>
-  `).join('');
+  if(total <= 1){
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    dotsWrap.innerHTML = '';
+    return;
+  }
 
-  dotsWrap.innerHTML = NEWS_DATA.map((_, i) =>
-    `<button class="slider__dot${i === 0 ? ' is-active' : ''}" role="tab" aria-label="Ir para notícia ${i + 1}"></button>`
+  dotsWrap.innerHTML = Array.from({ length: total }, (_, i) =>
+    `<button class="slider__dot${i === 0 ? ' is-active' : ''}" role="tab" aria-label="${dotLabel} ${i + 1}"></button>`
   ).join('');
 
   const dots = dotsWrap.querySelectorAll('.slider__dot');
   let index = 0;
-  const total = NEWS_DATA.length;
   let autoplayId = null;
 
   function render(){
@@ -249,40 +250,66 @@ function initNewsSlider(){
 }
 
 /* ===================================================================
-   MÓDULO: CALENDÁRIO (card em destaque + lista + contagem regressiva)
+   MÓDULO: NOTÍCIAS
    =================================================================== */
-function raceDateValue(race){
-  const source = race.dateTime || race.target;
-  const date = new Date(source || '');
-  return Number.isNaN(date.getTime()) ? null : date;
+function initNewsSlider(){
+  const track = document.getElementById('sliderTrack');
+
+  if(!NEWS_DATA.length){
+    track.innerHTML = `
+      <div class="slider__slide">
+        <div class="slide__body" style="grid-column: 1 / -1; text-align: center; padding: 60px 24px;">
+          <h3 class="slide__title">Nenhuma notícia publicada ainda</h3>
+          <p class="slide__desc">As chamadas cadastradas no painel administrativo aparecem aqui automaticamente.</p>
+        </div>
+      </div>`;
+    document.getElementById('prevSlide').style.display = 'none';
+    document.getElementById('nextSlide').style.display = 'none';
+    document.getElementById('sliderDots').innerHTML = '';
+    return;
+  }
+
+  track.innerHTML = NEWS_DATA.map(item => `
+    <div class="slider__slide">
+      <div class="slide__media media-placeholder">
+        ${item.imageUrl
+          ? `<img class="slide__image" src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.remove()">`
+          : `<span class="media-placeholder__icon">${ICONS[item.icon] || ''}</span>`}
+        <span class="media-placeholder__icon">${escapeHtml(item.category)}</span>
+      </div>
+      <div class="slide__body">
+        <span class="slide__category">${escapeHtml(item.category)}</span>
+        <h3 class="slide__title">${escapeHtml(item.title)}</h3>
+        <p class="slide__desc">${escapeHtml(item.desc)}</p>
+        <a href="#" class="slide__link">Ler mais →</a>
+      </div>
+    </div>
+  `).join('');
+
+  buildSlider({
+    sliderId: 'newsSlider', trackId: 'sliderTrack', dotsId: 'sliderDots',
+    prevId: 'prevSlide', nextId: 'nextSlide',
+    total: NEWS_DATA.length, dotLabel: 'Ir para notícia'
+  });
 }
 
-function raceTimestamp(race){
-  const date = raceDateValue(race);
-  return date ? date.getTime() : Number.MAX_SAFE_INTEGER;
-}
+/* ===================================================================
+   MÓDULO: CALENDÁRIO (card em destaque + lista + contagem regressiva)
+   Formato do evento: quali às 12:00 do dia cadastrado; corrida das
+   00:00 às 00:00 do dia seguinte (24h). Status e ordenação derivam
+   da DATA salva no painel — via helpers de firebase-data.js.
+   =================================================================== */
 
-function computeRaceStatus(race, referenceDate = new Date()){
-  const raceDate = raceDateValue(race);
-  if(!raceDate) return race.status || 'proxima';
-  const start = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate(), 12, 0, 0, 0, 0);
-  const end = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate() + 1, 0, 0, 0, 0);
-  if(referenceDate < start) return 'proxima';
-  if(referenceDate < end) return 'andamento';
-  return 'finalizada';
-}
+const RACE_FORMAT_TEXT = 'Quali 12:00 · Corrida 24h';
 
-function normalizeRaceStatus(race){
-  const raceDate = raceDateValue(race);
-  const target = raceDate
-    ? `${raceDate.getFullYear()}-${String(raceDate.getMonth() + 1).padStart(2, '0')}-${String(raceDate.getDate()).padStart(2, '0')}T12:00:00`
-    : race.target;
-  return { ...race, target, status: computeRaceStatus(race) };
-}
-
-function sortRacesForLanding(races){
-  /* ordem cronológica: do GP mais próximo (data mais antiga) ao mais distante */
-  return [...races].sort((a, b) => raceTimestamp(a) - raceTimestamp(b));
+/* acrescenta o texto de exibição pt-BR (só a data importa no formato CNM) */
+function localizedRace(race){
+  const date = new Date(race.dateTime || '');
+  const validDate = !Number.isNaN(date.getTime());
+  return {
+    ...race,
+    date: validDate ? date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+  };
 }
 
 function initCalendar(){
@@ -293,39 +320,43 @@ function initCalendar(){
     date: document.getElementById('featureDate'),
     time: document.getElementById('featureTime'),
     badge: document.getElementById('featureBadge'),
-    statusBlock: document.getElementById('featureStatusBlock'),
-    card: document.getElementById('raceFeature')
+    statusBlock: document.getElementById('featureStatusBlock')
   };
 
-  const STATUS_LABEL = { proxima: 'Próxima', andamento: 'Ao vivo', finalizada: 'Finalizada' };
+  /* ordem cronológica (datas inválidas por último) + status calculado agora */
+  RACES_DATA = [...RACES_DATA]
+    .map((race) => ({ ...race, status: CNM.raceStatus(race) }))
+    .sort((a, b) => CNM.raceSortValue(a) - CNM.raceSortValue(b));
 
-  RACES_DATA = sortRacesForLanding(RACES_DATA.map(normalizeRaceStatus));
-  const STATUS_LABEL_AUTO = { proxima: 'A seguir', andamento: 'Em andamento', finalizada: 'Expirado' };
+  if(!RACES_DATA.length){
+    listWrap.innerHTML = '<p class="race-list__empty" style="color: var(--c-muted); text-align: center;">Nenhuma etapa cadastrada ainda.</p>';
+    document.getElementById('raceFeature').style.display = 'none';
+    return;
+  }
 
-  /* texto de agenda tolerante a datas ainda não cadastradas */
   function raceScheduleText(race){
-    const parts = [race.date, race.time].map(v => (v || '').trim()).filter(Boolean);
-    return parts.length ? parts.join(' · ') : 'Data a definir';
+    return (race.date || '').trim() || 'Data a definir';
   }
 
   listWrap.innerHTML = RACES_DATA.map((race, i) => `
     <div class="race-list__item" tabindex="0" data-index="${i}">
       <div class="race-item__info">
-        <span class="race-item__name">${race.name}</span>
-        <span class="race-item__date">${raceScheduleText(race)}</span>
+        <span class="race-item__name">${escapeHtml(race.name)}</span>
+        <span class="race-item__date">${escapeHtml(raceScheduleText(race))}</span>
       </div>
-      <span class="status-badge status-badge--${race.status === 'andamento' ? 'andamento' : race.status}">${STATUS_LABEL_AUTO[race.status]}</span>
+      <span class="status-badge status-badge--${race.status}">${CNM.raceStatusLabel(race.status)}</span>
     </div>
   `).join('');
 
   let countdownId = null;
 
-  function renderCountdown(targetISO){
+  /* contagem regressiva até a largada da quali (12:00 do dia do GP) */
+  function renderCountdown(targetTime){
     clearInterval(countdownId);
     function tick(){
-      const diff = new Date(targetISO).getTime() - Date.now();
+      const diff = targetTime - Date.now();
       if(diff <= 0){
-        feature.statusBlock.innerHTML = '<p class="status-message"><span class="live-dot"></span> Corrida em andamento — acompanhe ao vivo</p>';
+        feature.statusBlock.innerHTML = '<p class="status-message"><span class="live-dot"></span> Classificação em andamento — acompanhe ao vivo</p>';
         clearInterval(countdownId);
         return;
       }
@@ -345,32 +376,39 @@ function initCalendar(){
     countdownId = setInterval(tick, 1000);
   }
 
-  function renderStatusMessage(status){
+  function renderStatusMessage(race){
     clearInterval(countdownId);
-    if(status === 'andamento'){
-      feature.statusBlock.innerHTML = '<p class="status-message"><span class="live-dot"></span> Corrida em andamento — acompanhe ao vivo</p>';
-    } else {
+    if(race.status === 'andamento'){
+      /* distingue a fase ao vivo: quali (12h–00h) ou corrida (00h–00h do dia seguinte) */
+      const phase = CNM.racePhase(race);
+      const label = phase === 'quali' ? 'Classificação em andamento' : 'Corrida em andamento';
+      feature.statusBlock.innerHTML = `<p class="status-message"><span class="live-dot"></span> ${label} — acompanhe ao vivo</p>`;
+    } else if(race.status === 'finalizada'){
       feature.statusBlock.innerHTML = '<p class="status-message">Etapa encerrada — confira o resultado completo</p>';
+    } else {
+      feature.statusBlock.innerHTML = '<p class="status-message">Data será confirmada em breve</p>';
     }
   }
 
   function paintFeature(race){
-    feature.circuit.textContent = race.circuit;
-    feature.name.textContent = race.name;
+    feature.circuit.textContent = race.circuit || '';
+    feature.name.textContent = race.name || '';
     feature.date.textContent = (race.date || '').trim() || 'Data a definir';
-    feature.time.textContent = (race.time || '').trim() ? `${race.time} (horário local)` : 'Horário a definir';
-    feature.badge.textContent = STATUS_LABEL_AUTO[race.status];
+    feature.time.textContent = RACE_FORMAT_TEXT;
+    feature.badge.textContent = CNM.raceStatusLabel(race.status);
     feature.badge.className = 'race-feature__badge' + (race.status === 'andamento' ? ' is-live' : race.status === 'finalizada' ? ' is-done' : '');
 
-    if(race.status === 'proxima' && race.target){
-      renderCountdown(race.target);
+    /* contagem regressiva até a quali (12:00 do dia cadastrado) */
+    const qualiStart = CNM.raceTimestamp(race);
+    if(race.status === 'proxima' && qualiStart !== null){
+      renderCountdown(qualiStart);
     } else {
-      renderStatusMessage(race.status);
+      renderStatusMessage(race);
     }
   }
 
-  /* corrida em destaque por padrão: a primeira com status "proxima" */
-  const defaultRace = RACES_DATA.find(r => r.status === 'proxima') || RACES_DATA[0];
+  /* destaque padrão: a primeira etapa ainda não finalizada; senão, a última realizada */
+  const defaultRace = RACES_DATA.find(r => r.status !== 'finalizada') || RACES_DATA[RACES_DATA.length - 1];
   paintFeature(defaultRace);
 
   const items = listWrap.querySelectorAll('.race-list__item');
@@ -391,39 +429,56 @@ function initCalendar(){
 
 /* ===================================================================
    MÓDULO: HALL DA FAMA (carrossel infinito com arraste e profundidade)
+   Com dados reais, as estatísticas são CALCULADAS dos resultados
+   (vitórias, pódios, pontos) — atualizam sozinhas a cada resultado.
    =================================================================== */
 function initHallOfFame(){
   const track = document.getElementById('carouselTrack');
   const viewport = document.getElementById('driverCarousel');
 
+  function cardStats(driver){
+    if(driver.hallStats) return driver.hallStats;
+    /* dados de demonstração */
+    return [
+      { value: driver.titles, label: 'Títulos' },
+      { value: driver.wins, label: 'Vitórias' },
+      { value: driver.seasons, label: 'Temporadas' },
+      { value: driver.nat, label: 'País' }
+    ];
+  }
+
   function cardMarkup(driver){
-    const initials = driver.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const initials = String(driver.name || 'CNM').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const stats = cardStats(driver);
+    /* foto do piloto (como no card de vencedor); se falhar, volta ao monograma */
+    const photo = driver.photoUrl
+      ? `<img class="card-driver__photo" src="${escapeHtml(driver.photoUrl)}" alt="${escapeHtml(driver.name)}" loading="lazy" onerror="this.remove()">`
+      : '';
     return `
-      <div class="card-driver" style="--team-color:${driver.color}">
+      <div class="card-driver" style="--team-color:${escapeHtml(driver.color || '#E10600')}">
         <div class="card-driver__plate">
-          <span class="card-driver__number">#${driver.number}</span>
-          <span class="card-driver__nat">${driver.nat}</span>
-          <span class="card-driver__ghost-number">${driver.number}</span>
-          <span class="card-driver__monogram">${initials}</span>
+          <span class="card-driver__ghost-number">${escapeHtml(driver.number)}</span>
+          <span class="card-driver__monogram">${escapeHtml(initials)}</span>
+          ${photo}
+          <span class="card-driver__number">#${escapeHtml(driver.number)}</span>
+          <span class="card-driver__nat">${escapeHtml(driver.nat)}</span>
         </div>
-        <p class="card-driver__name">${driver.name}</p>
-        <p class="card-driver__team">${driver.team}</p>
+        <p class="card-driver__name">${escapeHtml(driver.name)}</p>
+        <p class="card-driver__team">${escapeHtml(driver.team)}</p>
         <div class="card-driver__stats">
-          <div class="card-driver__stat"><span class="card-driver__stat-value">${driver.titles}</span><span class="card-driver__stat-label">Títulos</span></div>
-          <div class="card-driver__stat"><span class="card-driver__stat-value">${driver.wins}</span><span class="card-driver__stat-label">Vitórias</span></div>
-          <div class="card-driver__stat"><span class="card-driver__stat-value">${driver.seasons}</span><span class="card-driver__stat-label">Temporadas</span></div>
-          <div class="card-driver__stat"><span class="card-driver__stat-value">${driver.nat}</span><span class="card-driver__stat-label">País</span></div>
+          ${stats.map((stat) => `<div class="card-driver__stat"><span class="card-driver__stat-value">${escapeHtml(stat.value)}</span><span class="card-driver__stat-label">${escapeHtml(stat.label)}</span></div>`).join('')}
         </div>
       </div>`;
   }
 
-  /* duplica o conjunto três vezes para permitir loop infinito suave */
-  const service = window.CNMFirebase;
-  const hallDrivers = DRIVERS_DATA.filter((driver) => service?.configured ? driver.showInHallOfFame === true : driver.showInHallOfFame !== false);
+  /* com dados reais só entram pilotos marcados no painel; na demonstração, todos */
+  const hallDrivers = DRIVERS_DATA.filter((driver) => USING_LIVE_DATA ? driver.showInHallOfFame === true : true);
   if(!hallDrivers.length){
-    track.innerHTML = '<p class="legends__empty">Nenhum piloto marcado para exibicao no Hall da Fama.</p>';
+    track.innerHTML = '<p class="legends__empty">Nenhum piloto marcado para exibição no Hall da Fama.</p>';
     return;
   }
+
+  /* duplica o conjunto três vezes para permitir loop infinito suave */
   const setHTML = hallDrivers.map(cardMarkup).join('');
   track.innerHTML = setHTML + setHTML + setHTML;
 
@@ -517,36 +572,46 @@ function initHallOfFame(){
 }
 
 /* ===================================================================
-   MÓDULO: NOSSO TIME
-   ===================================================================
-   */
+   MÓDULO: NOSSO TIME (conteúdo institucional fixo)
+   =================================================================== */
 function initTeamStructure(){
   const TEAM_DATA = [
-    { role: 'Dono Geral', members: ['David Tyson De Rossi Cardoso'], founder: true, tag: 'Direcao' },
-    { role: 'Admin', members: ['Pablo Gutemberg', 'Joao Delmon', 'JonSenna'], tag: 'Operacao' },
-    { role: 'Video Maker', members: ['Karakama', 'David'], tag: 'Midia' },
+    { role: 'Dono Geral', members: ['David Tyson De Rossi Cardoso'], founder: true, tag: 'Direção' },
+    { role: 'Admin', members: ['Pablo Gutemberg', 'Joao Delmon', 'JonSenna'], tag: 'Operação' },
+    { role: 'Video Maker', members: ['Karakama', 'David'], tag: 'Mídia' },
     { role: 'Designer', members: ['Guilherme', 'David'], tag: 'Visual' },
     { role: 'Programador', members: ['Dan'], tag: 'Tech' },
-    { role: 'Jornalista', members: ['David'], tag: 'Conteudo' },
-    { role: 'Parcerias', members: ['NGP', 'TWC'], tag: 'Relacoes' }
+    { role: 'Jornalista', members: ['David'], tag: 'Conteúdo' },
+    { role: 'Parcerias', members: ['NGP', 'TWC'], tag: 'Relações' }
   ];
 
-  const container = document.getElementById('teamStructure');
-  container.innerHTML = TEAM_DATA.map((role, index) => `
-    <article class="team-role${role.founder ? ' team-role--lead' : ''}" style="--i:${index + 1}" data-index="${String(index + 1).padStart(2, '0')}">
-      ${role.founder ? '<span class="team-role__ribbon">Fundador</span>' : ''}
-      <div class="team-role__meta">
-        <span class="team-role__tag">${role.tag}</span>
-        <span class="team-role__count">${role.members.length} ${role.members.length === 1 ? 'membro' : 'membros'}</span>
-      </div>
-      <p class="team-role__title">${role.role}</p>
-      <div class="team-role__members">
-        ${role.members.map((member) => `<p class="team-member${role.founder ? ' founder' : ''}"><span class="team-member__avatar">${member.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()}</span><span class="team-member__name">${member}</span></p>`).join('')}
-      </div>
-    </article>
+  /* um cargo por slide — seção compacta, com navegação igual à de notícias */
+  document.getElementById('teamTrack').innerHTML = TEAM_DATA.map((role, index) => `
+    <div class="slider__slide slider__slide--panel">
+      <article class="team-role${role.founder ? ' team-role--lead' : ''}" data-index="${String(index + 1).padStart(2, '0')}">
+        ${role.founder ? '<span class="team-role__ribbon">Fundador</span>' : ''}
+        <div class="team-role__meta">
+          <span class="team-role__tag">${escapeHtml(role.tag)}</span>
+          <span class="team-role__count">${role.members.length} ${role.members.length === 1 ? 'membro' : 'membros'}</span>
+        </div>
+        <p class="team-role__title">${escapeHtml(role.role)}</p>
+        <div class="team-role__members">
+          ${role.members.map((member) => `<p class="team-member${role.founder ? ' founder' : ''}"><span class="team-member__avatar">${escapeHtml(member.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</span><span class="team-member__name">${escapeHtml(member)}</span></p>`).join('')}
+        </div>
+      </article>
+    </div>
   `).join('');
+
+  buildSlider({
+    sliderId: 'teamSlider', trackId: 'teamTrack', dotsId: 'teamDots',
+    prevId: 'teamPrev', nextId: 'teamNext',
+    total: TEAM_DATA.length, dotLabel: 'Ir para cargo'
+  });
 }
 
+/* ===================================================================
+   MÓDULO: PATROCINADORES E PARCERIAS (conteúdo institucional fixo)
+   =================================================================== */
 function initSponsors(){
   const SPONSORS_DATA = [
     { name: 'Toyota gr', type: 'sponsor', tier: 'Master' },
@@ -558,62 +623,83 @@ function initSponsors(){
     { name: 'TWC', type: 'partnership', tier: 'Parceria' }
   ];
 
-  const container = document.getElementById('sponsorsGrid');
-  container.innerHTML = SPONSORS_DATA.map((item) => {
+  /* um apoio por slide — seção compacta, com navegação igual à de notícias */
+  document.getElementById('sponsorTrack').innerHTML = SPONSORS_DATA.map((item) => {
     const monogram = item.name.split(' ').map((part) => part[0]).join('').slice(0, 3).toUpperCase();
     return `
-      <article class="sponsor-card sponsor-card--${item.type}">
-        <div class="sponsor-card__shine"></div>
-        <div class="sponsor-card__mark">${monogram}</div>
-        <div class="sponsor-card__inner">
-          <span class="sponsor-card__badge">${item.tier}</span>
-          <p class="sponsor-card__name">${item.name}</p>
-          <span class="sponsor-card__type">${item.type === 'partnership' ? 'Parceria oficial' : 'Patrocinador'}</span>
-        </div>
-      </article>
+      <div class="slider__slide slider__slide--panel">
+        <article class="sponsor-card sponsor-card--${item.type}">
+          <div class="sponsor-card__shine"></div>
+          <div class="sponsor-card__mark">${escapeHtml(monogram)}</div>
+          <div class="sponsor-card__inner">
+            <span class="sponsor-card__badge">${escapeHtml(item.tier)}</span>
+            <p class="sponsor-card__name">${escapeHtml(item.name)}</p>
+            <span class="sponsor-card__type">${item.type === 'partnership' ? 'Parceria oficial' : 'Patrocinador'}</span>
+          </div>
+        </article>
+      </div>
     `;
   }).join('');
+
+  buildSlider({
+    sliderId: 'sponsorSlider', trackId: 'sponsorTrack', dotsId: 'sponsorDots',
+    prevId: 'sponsorPrev', nextId: 'sponsorNext',
+    total: SPONSORS_DATA.length, dotLabel: 'Ir para apoio'
+  });
 }
 
 /* ===================================================================
    MÓDULO: ÚLTIMO VENCEDOR
+   Escolhe o resultado mais recente que tenha entradas e mostra o
+   piloto que cruzou em primeiro — com tempo real e gap calculado.
    =================================================================== */
 function winnerImageMarkup(driver){
-  const initials = (driver.name || 'CNM').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const initials = String(driver.name || 'CNM').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   if(driver.photoUrl){
-    return `<img class="winner-card__image" src="${driver.photoUrl}" alt="${driver.name}" loading="lazy" onerror="this.replaceWith(this.nextElementSibling)"><div class="winner-card__placeholder">${initials}</div>`;
+    return `<img class="winner-card__image" src="${escapeHtml(driver.photoUrl)}" alt="${escapeHtml(driver.name)}" loading="lazy" onerror="this.replaceWith(this.nextElementSibling)"><div class="winner-card__placeholder" hidden>${escapeHtml(initials)}</div>`;
   }
-  return `<div class="winner-card__placeholder">${initials}</div>`;
+  return `<div class="winner-card__placeholder">${escapeHtml(initials)}</div>`;
 }
 
-function getLatestWinner(){
-  const racesById = new Map(RACES_DATA.map((race) => [race.id, normalizeRaceStatus(race)]));
-  const finishedResults = RESULTS_DATA
-    .map((result) => ({ result, race: racesById.get(result.raceId) }))
-    .filter(({ result, race }) => result.entries?.length && (!race || race.status === 'finalizada'))
-    .sort((a, b) => raceTimestamp(b.race || {}) - raceTimestamp(a.race || {}));
-  const winnerEntry = finishedResults[0]?.result.entries.find((entry) => Number(entry.position) === 1) || finishedResults[0]?.result.entries[0];
-  return DRIVERS_DATA.find((driver) => driver.id === winnerEntry?.driverId) || DRIVERS_DATA[0];
+/* "1:23.456" ou "83.456" -> segundos (número) */
+function parseLapTime(value){
+  const match = String(value || '').trim().match(/^(?:(\d+):)?(\d{1,2}(?:[.,]\d{1,3})?)$/);
+  if(!match) return null;
+  return Number(match[1] || 0) * 60 + Number(match[2].replace(',', '.'));
 }
 
 function initWinner(){
   const container = document.getElementById('winnerContainer');
   if (!container) return;
 
-  const finishedRaces = RACES_DATA.map(normalizeRaceStatus).filter((race) => race.status === 'finalizada');
-  if (finishedRaces.length === 0) {
-    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhuma corrida finalizada ainda.</p>';
+  const emptyMessage = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhum resultado publicado ainda.</p>';
+
+  /* RESULTS_DATA já vem ordenado (etapa mais recente primeiro) da camada de dados */
+  const latestResult = RESULTS_DATA.find((result) => result.entries && result.entries.length);
+  if (!latestResult) {
+    container.innerHTML = emptyMessage;
     return;
   }
 
-  const winner = getLatestWinner();
-  const latestResult = RESULTS_DATA
-    .filter((result) => result.entries?.length)
-    .sort((a, b) => String(b.publishedAt || '').localeCompare(String(a.publishedAt || '')))[0];
-  const winnerEntry = latestResult?.entries?.find((entry) => entry.driverId === winner.id);
-  const lapTime = winnerEntry?.lapTime || '1:23.456';
-  const gapToSecond = '+0.234s';
+  const entries = latestResult.entries;
+  const winnerEntry = entries.find((entry) => Number(entry.position) === 1) || entries[0];
+  const runnerUpEntry = entries.find((entry) => Number(entry.position) === 2);
+  const winner = DRIVERS_DATA.find((driver) => driver.id === winnerEntry.driverId);
+  if (!winner) {
+    container.innerHTML = emptyMessage;
+    return;
+  }
+
+  const lapTime = winnerEntry.lapTime || '—';
+  const winnerSeconds = parseLapTime(winnerEntry.lapTime);
+  const runnerUpSeconds = parseLapTime(runnerUpEntry?.lapTime);
+  const gapToSecond = (winnerSeconds !== null && runnerUpSeconds !== null && runnerUpSeconds >= winnerSeconds)
+    ? `+${(runnerUpSeconds - winnerSeconds).toFixed(3)}s`
+    : '—';
   const image = winnerImageMarkup(winner);
+  const name = escapeHtml(winner.name);
+  const team = escapeHtml(winner.team);
+  const number = escapeHtml(winner.number);
 
   container.innerHTML = `
     <div class="winner-card">
@@ -621,17 +707,17 @@ function initWinner(){
     </div>
     <div class="winner-stats">
       <div>
-        <p class="winner-name">${winner.name}</p>
-        <p class="winner-team">${winner.team}</p>
+        <p class="winner-name">${name}</p>
+        <p class="winner-team">${team}</p>
       </div>
       <div class="stat-row">
         <div class="stat">
-          <span class="stat__label">Numero</span>
-          <span class="stat__value">#${winner.number}</span>
+          <span class="stat__label">Número</span>
+          <span class="stat__value">#${number}</span>
         </div>
         <div class="stat">
-          <span class="stat__label">Volta Rapida</span>
-          <span class="stat__value">${lapTime}</span>
+          <span class="stat__label">Tempo</span>
+          <span class="stat__value">${escapeHtml(lapTime)}</span>
         </div>
       </div>
     </div>
@@ -641,24 +727,24 @@ function initWinner(){
         <div class="winner-flip-front">
           ${image}
           <div class="winner-flip-front__info">
-            <p class="winner-name">${winner.name}</p>
-            <p class="winner-team">${winner.team}</p>
-            <span class="winner-number">#${winner.number}</span>
+            <p class="winner-name">${name}</p>
+            <p class="winner-team">${team}</p>
+            <span class="winner-number">#${number}</span>
           </div>
         </div>
         <div class="winner-flip-back">
           <div>
-            <p class="winner-name" style="font-size: 1.5rem; margin-bottom: 0;">${winner.name}</p>
-            <p class="winner-team">${winner.team}</p>
+            <p class="winner-name" style="font-size: 1.5rem; margin-bottom: 0;">${name}</p>
+            <p class="winner-team">${team}</p>
           </div>
           <div class="stat-row">
             <div class="stat">
-              <span class="stat__label">Volta Rapida</span>
-              <span class="stat__value">${lapTime}</span>
+              <span class="stat__label">Tempo</span>
+              <span class="stat__value">${escapeHtml(lapTime)}</span>
             </div>
             <div class="stat">
-              <span class="stat__label">Gap 2o</span>
-              <span class="stat__value">${gapToSecond}</span>
+              <span class="stat__label">Gap 2º</span>
+              <span class="stat__value">${escapeHtml(gapToSecond)}</span>
             </div>
           </div>
         </div>
@@ -667,43 +753,63 @@ function initWinner(){
   `;
 }
 
+/* ===================================================================
+   MÓDULO: EQUIPES
+   =================================================================== */
 function initTeams(){
   const grid = document.getElementById('teamsGrid');
+
+  if(!TEAMS_DATA.length){
+    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--c-muted);">Nenhuma equipe cadastrada ainda.</p>';
+    return;
+  }
+
   grid.innerHTML = TEAMS_DATA.map(team => {
     const teamDrivers = DRIVERS_DATA.filter(driver => driver.team === team.name);
     return `
-      <div class="team-card" style="--team-color:${team.color}">
+      <div class="team-card" style="--team-color:${escapeHtml(team.color || '#E10600')}">
         <div class="team-card__content">
           <span class="team-card__swatch"></span>
-          <p class="team-card__name">${team.name}</p>
-          <p class="team-card__base">${team.base}</p>
+          <p class="team-card__name">${escapeHtml(team.name)}</p>
+          <p class="team-card__base">${escapeHtml(team.base)}</p>
         </div>
         <div class="team-card__drivers">
-          ${teamDrivers.map(driver => `
+          <p class="team-card__drivers-title">${escapeHtml(team.name)}</p>
+          ${teamDrivers.length ? teamDrivers.map(driver => `
             <div class="team-driver">
-              <div class="team-driver__number">#${driver.number}</div>
-              <div class="team-driver__name">${driver.name}</div>
+              <span class="team-driver__name">${escapeHtml(driver.name)}</span>
+              <span class="team-driver__number">#${escapeHtml(driver.number)}</span>
             </div>
-          `).join('')}
+          `).join('') : '<p class="team-card__empty">Nenhum piloto cadastrado</p>'}
         </div>
       </div>
     `;
   }).join('');
-  
-  // Adiciona interatividade aos cards
-  document.querySelectorAll('.team-card').forEach(card => {
-    card.addEventListener('click', () => {
-      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('is-active'));
-      card.classList.add('is-active');
+
+  /* fundo desfocado exibido enquanto um card está em destaque */
+  const backdrop = document.createElement('div');
+  backdrop.className = 'teams-backdrop';
+  document.body.appendChild(backdrop);
+
+  function closeTeamCards(){
+    document.querySelectorAll('.team-card').forEach(c => c.classList.remove('is-active'));
+    backdrop.classList.remove('is-active');
+  }
+
+  grid.querySelectorAll('.team-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasActive = card.classList.contains('is-active');
+      closeTeamCards();
+      if(!wasActive){
+        card.classList.add('is-active');
+        backdrop.classList.add('is-active');
+      }
     });
   });
-  
-  // Remove a classe active ao clicar fora
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.team-card')) {
-      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('is-active'));
-    }
-  });
+
+  backdrop.addEventListener('click', closeTeamCards);
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeTeamCards(); });
 }
 
 /* ===================================================================
@@ -711,12 +817,18 @@ function initTeams(){
    =================================================================== */
 function initStandings(){
   const body = document.getElementById('standingsBody');
+
+  if(!STANDINGS_DATA.length){
+    body.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--c-muted); padding: 28px;">Nenhum piloto cadastrado ainda.</td></tr>';
+    return;
+  }
+
   body.innerHTML = STANDINGS_DATA.map(row => `
     <tr>
       <td><span class="pos-badge${row.pos <= 3 ? ' pos-badge--' + row.pos : ''}">${row.pos}</span></td>
-      <td class="driver-cell">${row.name}</td>
-      <td class="team-cell"><span class="team-dot" style="background:${row.color}"></span>${row.team}</td>
-      <td class="points-cell">${row.points} pts</td>
+      <td class="driver-cell">${escapeHtml(row.name)}</td>
+      <td class="team-cell"><span class="team-dot" style="background:${escapeHtml(row.color || '#E10600')}"></span>${escapeHtml(row.team)}</td>
+      <td class="points-cell">${Number(row.points) || 0} pts</td>
     </tr>
   `).join('');
 }
@@ -744,44 +856,46 @@ function initFooterYear(){
   document.getElementById('footerYear').textContent = new Date().getFullYear();
 }
 
-function localizedRace(race){
-  const date = new Date(race.dateTime);
-  const validDate = !Number.isNaN(date.getTime());
-  return {
-    ...race,
-    date: validDate ? date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : race.dateTime,
-    time: validDate ? date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
-    target: race.dateTime || null
-  };
-}
-
+/* ===================================================================
+   CARGA DOS DADOS PUBLICADOS
+   Fluxo: Admin → Firestore → firebase-data.js → aqui → renderização.
+   Quando o Firebase está configurado, os dados publicados SUBSTITUEM
+   integralmente os de demonstração (inclusive quando vazios) — assim
+   qualquer item criado no painel aparece imediatamente no portal.
+   =================================================================== */
 async function hydrateFirebaseData(){
-  const service = window.CNMFirebase;
-  if(!service || !service.configured) return;
+  if(!CNM || !CNM.configured) return;
   try {
-    const data = await service.loadPublicData();
-    if(data.news.length) NEWS_DATA = data.news;
-    if(data.races.length) RACES_DATA = sortRacesForLanding(data.races.map(localizedRace).map(normalizeRaceStatus));
-    if(data.results.length) RESULTS_DATA = data.results;
-    if(data.teams.length) TEAMS_DATA = data.teams;
-    if(data.drivers.length){
-      const teamsById = new Map(data.teams.map(team => [team.id, team]));
-      DRIVERS_DATA = data.drivers.map(driver => {
-        const team = teamsById.get(driver.teamId) || {};
-        return { ...driver, team: team.name || 'Equipe não cadastrada', color: driver.color || team.color || '#E10600', titles: driver.titles || 0, wins: driver.wins || 0, seasons: driver.seasons || 0 };
-      });
-      DRIVERS_DATA = DRIVERS_DATA.map((driver) => ({
+    const data = await CNM.loadPublicData();
+    const teamsById = new Map(data.teams.map(team => [team.id, team]));
+    const stats = CNM.getDriverStats(data.drivers, data.results);
+
+    NEWS_DATA = data.news;
+    RACES_DATA = data.races;
+    RESULTS_DATA = data.results;
+    TEAMS_DATA = data.teams;
+    DRIVERS_DATA = data.drivers.map(driver => {
+      const team = teamsById.get(driver.teamId) || {};
+      const record = stats.get(driver.id) || { points: 0, wins: 0, podiums: 0 };
+      return {
         ...driver,
-        photoUrl: driver.photoUrl || '',
-        showInHallOfFame: driver.showInHallOfFame === true
-      }));
-      STANDINGS_DATA = data.standings.map(row => {
-        const team = teamsById.get(row.teamId) || {};
-        return { ...row, team: team.name || 'Equipe não cadastrada', color: row.color || team.color || '#E10600' };
-      });
-    }
+        team: team.name || 'Equipe não cadastrada',
+        color: driver.color || team.color || '#E10600',
+        hallStats: [
+          { value: record.wins, label: 'Vitórias' },
+          { value: record.podiums, label: 'Pódios' },
+          { value: record.points, label: 'Pontos' },
+          { value: driver.nat || '—', label: 'País' }
+        ]
+      };
+    });
+    STANDINGS_DATA = data.standings.map(row => {
+      const team = teamsById.get(row.teamId) || {};
+      return { ...row, team: team.name || 'Equipe não cadastrada', color: row.color || team.color || '#E10600' };
+    });
+    USING_LIVE_DATA = true;
   } catch(error){
-    console.warn('Não foi possível carregar os dados publicados da CNM.', error);
+    console.error('[CNM] Falha ao carregar os dados publicados; exibindo dados de demonstração.', error);
   }
 }
 
@@ -790,6 +904,9 @@ async function hydrateFirebaseData(){
    =================================================================== */
 document.addEventListener('DOMContentLoaded', async () => {
   await hydrateFirebaseData();
+  /* textos de exibição (data/hora pt-BR) para todas as corridas */
+  RACES_DATA = RACES_DATA.map(localizedRace);
+
   initHeader();
   initNewsSlider();
   initCalendar();
