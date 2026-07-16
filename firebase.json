@@ -2,6 +2,27 @@
   "firestore": { "rules": "firestore.rules" },
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", "firestore.rules", "FIREBASE_SETUP.md", ".git/**", "work/**"]
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "FIREBASE_SETUP.md",
+      "ALTERACOES.md",
+      ".git/**",
+      ".gitignore",
+      ".firebase/**",
+      ".claude/**",
+      ".agents/**",
+      "work/**"
+    ],
+    "headers": [
+      {
+        "source": "**/*.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "**/*.@(js|css)",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }]
+      }
+    ]
   }
 }

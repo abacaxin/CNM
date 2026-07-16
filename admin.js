@@ -1,10 +1,17 @@
+/* ===================================================================
+   CNM — painel administrativo
+   Lê e grava via window.CNMFirebase (camada de dados única).
+   Toda gravação é feita em formato CANÔNICO com set() sem merge:
+   reeditar e salvar um registro antigo remove automaticamente os
+   campos legados (driver-N, points-N, entriesText, date/time soltos).
+   =================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
   const service = window.CNMFirebase;
   const notice = document.getElementById('adminMessage');
   const state = { news: [], races: [], teams: [], drivers: [], results: [] };
   const resultDraft = {};
 
-  const escapeHtml = (value) => String(value || '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
   const show = (text, error = false) => { notice.textContent = text; notice.classList.toggle('is-error', error); };
   const db = () => service.db();
 
@@ -31,35 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }));
 
   async function refresh() {
-    const names = Object.keys(state);
-    const snapshots = await Promise.all(names.map((name) => db().collection(name).get()));
-    names.forEach((name, index) => { state[name] = snapshots[index].docs.map((doc) => ({ id: doc.id, ...doc.data() })); });
-    state.news.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    state.races.sort((a, b) => raceTimestamp(a) - raceTimestamp(b));
-    state.teams.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    state.drivers.sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    render();
+    try {
+      const data = await service.loadPublicData();
+      state.news = data.news;
+      state.races = data.races;
+      state.teams = data.teams;
+      state.drivers = data.drivers;
+      state.results = data.results;
+      render();
+    } catch (error) {
+      show(error.message || 'Não foi possível carregar os dados do banco.', true);
+    }
   }
 
   function teamName(teamId) { return state.teams.find((team) => team.id === teamId)?.name || 'Equipe não cadastrada'; }
-  function driverName(driverId) { return state.drivers.find((driver) => driver.id === driverId)?.name || 'Piloto não cadastrado'; }
   function options(items, label) { return `<option value="">Selecione</option>${items.map((item) => `<option value="${item.id}">${escapeHtml(label(item))}</option>`).join('')}`; }
-  function raceTimestamp(race) {
-    const time = new Date(race.dateTime || '').getTime();
-    return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
-  }
-  function raceStatus(dateTime, referenceDate = new Date()) {
-    const raceDate = new Date(dateTime || '');
-    if (Number.isNaN(raceDate.getTime())) return 'proxima';
-    const start = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate(), 12, 0, 0, 0);
-    const end = new Date(raceDate.getFullYear(), raceDate.getMonth(), raceDate.getDate() + 1, 0, 0, 0, 0);
-    if (referenceDate < start) return 'proxima';
-    if (referenceDate < end) return 'andamento';
-    return 'finalizada';
-  }
-  function raceStatusLabel(status) {
-    return ({ proxima: 'A seguir', andamento: 'Em andamento', finalizada: 'Expirado' })[status] || 'A seguir';
-  }
   function scoringDriversCount(result) {
     return (result.entries || []).filter((entry) => entry.driverId && Number(entry.points || 0) > 0).length;
   }
@@ -67,11 +60,22 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id).innerHTML = rows.length ? rows.map((row) => `<article class="admin-list__item"><div>${markup(row)}</div><div class="list-actions"><button class="btn btn--ghost btn--sm" data-action="edit" data-collection="${collection}" data-id="${row.id}">Editar</button><button class="btn btn--danger btn--sm" data-action="delete" data-collection="${collection}" data-id="${row.id}">Excluir</button></div></article>`).join('') : '<p class="admin-empty">Nenhum item cadastrado.</p>';
   }
 
-  function getF1Points(position) {
-    const pointsTable = {
-      1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1
-    };
-    return pointsTable[position] || 0;
+  const F1_POINTS = { 1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1 };
+  const MAX_POSITIONS = 22;
+  function getF1Points(position) { return F1_POINTS[position] || 0; }
+
+  function formatRaceDateTime(dateTime) {
+    const date = new Date(dateTime || '');
+    if (Number.isNaN(date.getTime())) return 'Data a definir';
+    return date.toLocaleDateString('pt-BR');
+  }
+
+  /* valor aceito por <input type="datetime-local"> a partir de um ISO */
+  function toLocalInputValue(isoString) {
+    const date = new Date(isoString || '');
+    if (Number.isNaN(date.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
   /* monta as <option> de um seletor de piloto, escondendo pilotos já
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
      preservando o valor selecionado de cada posição e o foco do usuário */
   function refreshDriverOptions() {
     const selects = [];
-    for (let pos = 1; pos <= 22; pos++) {
+    for (let pos = 1; pos <= MAX_POSITIONS; pos++) {
       const el = document.querySelector(`select[name="driver-${pos}"]`);
       if (el) selects.push(el);
     }
@@ -106,14 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
     Object.keys(resultDraft).forEach((key) => delete resultDraft[key]);
   }
 
-  /* monta as 22 linhas de posição uma única vez; a troca de piloto apenas
-     atualiza as opções dos demais seletores, sem destruir/recriar os campos
-     (o que fazia a seleção "não ser aplicada") */
+  /* monta as linhas de posição uma única vez; a troca de piloto apenas
+     atualiza as opções dos demais seletores, sem destruir/recriar os campos */
   function renderResultEntries() {
     const container = document.getElementById('resultEntriesContainer');
     container.innerHTML = '';
 
-    for (let pos = 1; pos <= 22; pos++) {
+    for (let pos = 1; pos <= MAX_POSITIONS; pos++) {
       const currentValue = resultDraft[pos]?.driverId || '';
 
       const posDiv = document.createElement('div');
@@ -179,88 +182,57 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList('teamsList', 'teams', state.teams, (item) => `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.base)} · ${escapeHtml(item.id)}</span>`);
     renderList('driversList', 'drivers', state.drivers, (item) => `<strong>#${escapeHtml(item.number)} ${escapeHtml(item.name)}</strong><span>${escapeHtml(teamName(item.teamId))} · ID: ${escapeHtml(item.id)}</span>`);
     renderList('racesList', 'races', state.races, (item) => {
-      const status = raceStatus(item.dateTime);
-      return `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.dateTime)} - ${raceStatusLabel(status)}</span>`;
+      const status = service.raceStatus(item);
+      return `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(formatRaceDateTime(item.dateTime))} · ${service.raceStatusLabel(status)}</span>`;
     });
     renderList('resultsList', 'results', state.results, (item) => `<strong>${escapeHtml(state.races.find((race) => race.id === item.raceId)?.name || 'Etapa removida')}</strong><span>${scoringDriversCount(item)} pilotos pontuaram</span>`);
     renderResultEntries();
   }
 
-  function autoSetRaceStatus(dateTime) {
-    const raceDate = new Date(dateTime);
-    const now = new Date();
-    
-    if (raceDate < now) {
-      return 'finalizada';
-    }
-    
-    // Encontra a próxima corrida mais perto
-    const futureRaces = state.races.filter(r => new Date(r.dateTime) >= now);
-    const nextRace = futureRaces.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime))[0];
-    
-    if (nextRace && nextRace.dateTime === dateTime) {
-      return 'proxima';
-    }
-    
-    return 'proxima';
-  }
-
-  function formData(form) {
+  /* transforma o formulário em um documento canônico para o Firestore */
+  function formData(form, editingId) {
     const data = Object.fromEntries(new FormData(form).entries());
     delete data.id;
-    
+
     if (form.id === 'raceForm') {
-      const date = data.date;
-      const time = data.time;
-      data.dateTime = `${date}T${time}:00`;
+      /* só a data importa: quali às 12:00 do dia, corrida de 00:00 a 00:00 do dia seguinte */
+      data.dateTime = `${data.date}T00:00:00`;
       delete data.date;
-      delete data.time;
-      
-      // Auto-set status se estiver vazio
-      if (!data.status || data.status === '') {
-        data.status = autoSetRaceStatus(data.dateTime);
-      }
-    }
-    
-    if (form.id === 'raceForm') {
-      delete data.status;
     }
 
     if (form.id === 'resultForm') {
       const entries = [];
-      for (let pos = 1; pos <= 22; pos++) {
+      for (let pos = 1; pos <= MAX_POSITIONS; pos++) {
         const driverId = data[`driver-${pos}`];
-        const points = data[`points-${pos}`];
-        if (driverId && points) {
-          const entry = { driverId, position: pos, points: Number(points) };
-          if (data[`time-${pos}`]) {
-            entry.lapTime = data[`time-${pos}`];
-          }
+        const lapTime = String(data[`time-${pos}`] || '').trim();
+        if (driverId) {
+          const entry = { driverId, position: pos, points: getF1Points(pos) };
+          if (lapTime) entry.lapTime = lapTime;
           entries.push(entry);
-          delete data[`driver-${pos}`];
-          delete data[`points-${pos}`];
-          delete data[`time-${pos}`];
-        } else {
-          delete data[`driver-${pos}`];
-          delete data[`points-${pos}`];
-          delete data[`time-${pos}`];
         }
+        delete data[`driver-${pos}`];
+        delete data[`points-${pos}`];
+        delete data[`time-${pos}`];
       }
       data.entries = entries;
-      delete data.entriesText;
-      data.publishedAt = data.publishedAt || new Date().toISOString();
+      data.publishedAt = data.publishedAt ? new Date(data.publishedAt).toISOString() : new Date().toISOString();
     }
-    
+
     if (form.id === 'driverForm') {
-      data.number = Number(data.number);
-      data.nat = data.nat.toUpperCase();
-      data.showInHallOfFame = form.elements.showInHallOfFame?.checked || false;
+      data.number = Number(data.number) || 0;
+      data.nat = String(data.nat || '').trim().toUpperCase();
+      data.photoUrl = String(data.photoUrl || '').trim();
+      /* boolean de verdade — o valor "on" do checkbox quebrava o filtro do Hall da Fama */
+      data.showInHallOfFame = Boolean(form.elements.showInHallOfFame?.checked);
     }
-    
+
     if (form.id === 'newsForm') {
-      data.createdAt = new Date().toISOString();
+      data.imageUrl = String(data.imageUrl || '').trim();
+      /* preserva a data de criação original ao editar; só cria nova em cadastro novo */
+      const current = editingId ? state.news.find((item) => item.id === editingId) : null;
+      data.createdAt = current?.createdAt || new Date().toISOString();
     }
-    
+
     return data;
   }
 
@@ -271,11 +243,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const id = form.elements.id.value;
       const collection = form.dataset.collection;
-      const data = formData(form);
-      if (id) await db().collection(collection).doc(id).set(data, { merge: true });
+      const data = formData(form, id);
+      /* set SEM merge: o documento é totalmente substituído pelo formato
+         canônico, o que também migra/limpa registros legados ao reeditar */
+      if (id) await db().collection(collection).doc(id).set(data);
       else await db().collection(collection).add(data);
       form.reset(); form.elements.id.value = '';
-      if (form.id === 'resultForm') clearResultDraft();
+      if (form.id === 'resultForm') { clearResultDraft(); }
       show('Alteração salva e publicada.');
       await refresh();
     } catch (error) { show(error.message || 'Não foi possível salvar a alteração.', true); }
@@ -300,41 +274,36 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!window.confirm('Excluir este item? Esta ação não pode ser desfeita.')) return;
       await db().collection(collection).doc(id).delete(); show('Item excluído.'); await refresh(); return;
     }
+
     const form = document.querySelector(`form[data-collection="${collection}"]`);
     Object.entries(item).forEach(([key, value]) => {
-      if (form.elements[key]) {
-        if (key === 'showInHallOfFame') {
-          form.elements[key].checked = value || false;
-        } else {
-          form.elements[key].value = value;
-        }
-      }
+      const field = form.elements[key];
+      if (!field || field instanceof RadioNodeList) return;
+      if (field.type === 'checkbox') field.checked = value === true;
+      else if (typeof value !== 'object') field.value = value;
     });
-    
-    // Separar dateTime em date e time para o formulário de corridas
-    if (collection === 'races' && item.dateTime) {
-      const dt = new Date(item.dateTime);
-      const date = dt.toISOString().split('T')[0];
-      const time = dt.toTimeString().slice(0, 5);
-      if (form.elements.date) form.elements.date.value = date;
-      if (form.elements.time) form.elements.time.value = time;
+
+    if (collection === 'races') {
+      /* extrai a data do dateTime salvo (string local) sem converter para UTC —
+         new Date().toISOString() deslocava a data em fusos negativos */
+      const [datePart = ''] = String(item.dateTime || '').split('T');
+      if (form.elements.date) form.elements.date.value = datePart;
     }
-    
-    form.elements.id.value = id;
+
     if (collection === 'results') {
+      if (form.elements.publishedAt) form.elements.publishedAt.value = toLocalInputValue(item.publishedAt);
       clearResultDraft();
-      if (item.entries) {
-        item.entries.forEach((entry) => {
-          resultDraft[entry.position] = {
-            driverId: entry.driverId || '',
-            points: Number(entry.points || getF1Points(entry.position)),
-            lapTime: entry.lapTime || ''
-          };
-        });
-      }
-      document.getElementById('resultEntriesContainer').innerHTML = '';
+      (item.entries || []).forEach((entry) => {
+        resultDraft[entry.position] = {
+          driverId: entry.driverId || '',
+          points: Number(entry.points || getF1Points(entry.position)),
+          lapTime: entry.lapTime || ''
+        };
+      });
       renderResultEntries();
     }
+
+    form.elements.id.value = id;
     form.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 });
