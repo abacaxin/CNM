@@ -1536,6 +1536,25 @@ table{ border-collapse: collapse; width: 100%; }
   
   .winner-flip-back .stat-row{ padding: 12px; }
   .stat__value{ font-size: 1rem; }
+
+  .splash-container {
+    padding: 0 16px;
+  }
+
+  .logo-wrapper {
+    width: 92%;
+    max-width: 420px;
+  }
+
+  .dmg-logo {
+    max-height: 220px;
+  }
+
+  .subtext {
+    font-size: 0.75rem;
+    letter-spacing: 0.5em;
+    margin-top: 16px;
+  }
 }
 
 @media (max-width: 480px){
@@ -1545,6 +1564,21 @@ table{ border-collapse: collapse; width: 100%; }
   .countdown__unit{ min-width: 0; flex: 1; padding: 10px 4px; }
   .countdown__value{ font-size: 1.25rem; }
   .card-driver{ width: 210px; }
+
+  .logo-wrapper {
+    width: 95%;
+    max-width: 320px;
+  }
+
+  .dmg-logo {
+    max-height: 180px;
+  }
+
+  .subtext {
+    font-size: 0.7rem;
+    letter-spacing: 0.45em;
+    margin-top: 14px;
+  }
 }
 
 @media (max-width: 760px){
