@@ -1557,3 +1557,56 @@ table{ border-collapse: collapse; width: 100%; }
   .slider--compact .team-role,
   .slider--compact .team-role--lead{ min-height: 170px; }
 }
+
+
+/* Container da Splash Screen */
+.splash-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 1;
+}
+
+/* Wrapper da Logo */
+.logo-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80%;
+    max-width: 600px;
+}
+
+/* Estilização do SVG */
+.dmg-logo {
+    width: 100%;
+    height: auto;
+}
+
+.dmg-path {
+    stroke: #ff0000; /* Cor da logo original */
+    stroke-width: 4; /* Ajuste conforme necessário */
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: transparent;
+    filter: drop-shadow(0 0 0px #ff0000); /* Brilho inicial */
+    transition: filter 0.3s ease;
+}
+
+/* Texto Secundário */
+.subtext {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6em;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.7);
+    opacity: 0;
+    transform: translateY(10px);
+}
