@@ -1608,8 +1608,8 @@ table{ border-collapse: collapse; width: 100%; }
     opacity: 1;
 }
 
-/* Esconde o conteúdo principal até o splash ser removido via JS */
-main{ display: none; }
+/* Esconde o conteúdo principal da landing até o splash ser removido via JS */
+body:not(.admin-body) main{ display: none; }
 
 /* Wrapper da Logo */
 .logo-wrapper {
