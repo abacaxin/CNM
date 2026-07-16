@@ -920,3 +920,104 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFooterYear();
   initScrollReveal();
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const splash = document.getElementById('splash-screen');
+    const mainContent = document.getElementById('main-content');
+    const paths = document.querySelectorAll('.dmg-path');
+    const subtext = document.querySelector('.subtext');
+
+    // Configurações da Animação
+    const config = {
+        strokeColor: '#FF0000', // Vermelho original
+        glowColor: '#FF3333',   // Brilho ligeiramente mais claro
+        drawDuration: 3.5,      // Duração da revelação das letras
+        fadeDuration: 1.0,      // Duração do fade out da intro
+        subtextDelay: 0.5,      // Delay para o texto secundário aparecer
+        holdTime: 1.5           // Tempo que a logo fica acesa antes de sumir
+    };
+
+    // Verifica se é o primeiro acesso
+    const hasSeenIntro = localStorage.getItem('dmg_intro_seen');
+
+    // Inicializa os paths (invisíveis)
+    paths.forEach(path => {
+        const length = path.getTotalLength();
+        // Prepara o efeito de desenho (DrawSVG manual)
+        gsap.set(path, {
+            strokeDasharray: length,
+            strokeDashoffset: length,
+            opacity: 1
+        });
+    });
+
+    const tl = gsap.timeline({
+        onComplete: () => {
+            // Finaliza a animação e mostra o site
+            gsap.to(splash, {
+                opacity: 0,
+                duration: config.fadeDuration,
+                ease: "power2.inOut",
+                onComplete: () => {
+                    splash.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    document.body.style.overflow = 'auto';
+                    localStorage.setItem('dmg_intro_seen', 'true');
+                }
+            });
+        }
+    });
+
+    if (!hasSeenIntro) {
+        // --- ANIMAÇÃO COMPLETA (Primeiro Acesso) ---
+        
+        // 1. Revelação OLED (Desenho dos traços)
+        tl.to(paths, {
+            strokeDashoffset: 0,
+            duration: config.drawDuration,
+            ease: "power2.inOut",
+            stagger: 0.2 // As letras começam em tempos levemente diferentes
+        });
+
+        // 2. Efeito de "Acendimento" (Brilho e Preenchimento Sutil)
+        tl.to(paths, {
+            filter: `drop-shadow(0 0 8px ${config.glowColor})`,
+            duration: 1.5,
+            ease: "sine.inOut"
+        }, "-=1.5"); // Começa um pouco antes de terminar o desenho
+
+        // 3. Texto Secundário (Fade-in elegante)
+        tl.to(subtext, {
+            opacity: 1,
+            y: 0,
+            duration: 1.2,
+            ease: "power2.out"
+        }, `+=${config.subtextDelay}`);
+
+        // 4. Aguardar um pouco
+        tl.to({}, { duration: config.holdTime });
+
+    } else {
+        // --- ANIMAÇÃO CURTA (Acessos Seguintes) ---
+        
+        // Revelação instantânea com um fade suave
+        gsap.set(paths, { strokeDashoffset: 0 });
+        gsap.set(subtext, { opacity: 1, y: 0 });
+        
+        tl.from(splash, {
+            opacity: 0,
+            duration: 0.5
+        });
+        
+        tl.to({}, { duration: 1 }); // Aguarda apenas 1 segundo
+    }
+});
+
+/**
+ * Função utilitária para resetar o localStorage (para testes)
+ * Chame resetIntro() no console do navegador
+ */
+window.resetIntro = () => {
+    localStorage.removeItem('dmg_intro_seen');
+    location.reload();
+};
