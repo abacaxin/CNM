@@ -1489,3 +1489,47 @@ table{ border-collapse: collapse; width: 100%; }
   .team-role--lead{ grid-column: auto; min-height: 190px; }
   .sponsors-grid{ grid-template-columns: 1fr; }
 }
+
+#dmg-intro {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dmg-container {
+    text-align: center;
+}
+
+.dmg-logo {
+    width: 450px;
+    overflow: visible;
+}
+
+.dmg-logo path {
+    fill: none;
+    stroke: #ff0000;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter:
+        drop-shadow(0 0 10px #ff0000)
+        drop-shadow(0 0 30px #ff0000)
+        drop-shadow(0 0 60px #ff0000);
+}
+
+.dmg-subtitle {
+    margin-top: 20px;
+    color: #999;
+    font-size: 14px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    opacity: 0;
+}
+
+.dmg-hide {
+    pointer-events: none;
+}
