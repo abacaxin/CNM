@@ -480,18 +480,18 @@ function initHallOfFame(){
     return;
   }
 
-  /* duplica o conjunto três vezes para permitir loop infinito suave */
+  /* duplica o conjunto para criar um loop infinito sem saltos */
   const setHTML = hallDrivers.map(cardMarkup).join('');
-  track.innerHTML = setHTML + setHTML + setHTML;
+  track.innerHTML = setHTML + setHTML;
 
   let cards = Array.from(track.children);
   let setWidth = 0;
 
   function measure(){
-    /* largura de um conjunto completo (cards + gaps), calculada após o layout */
     const style = getComputedStyle(track);
     const gap = parseFloat(style.gap) || 26;
-    setWidth = cards.slice(0, hallDrivers.length).reduce((acc, el) => acc + el.getBoundingClientRect().width + gap, 0);
+    const firstSet = cards.slice(0, hallDrivers.length);
+    setWidth = firstSet.reduce((acc, el, index) => acc + el.getBoundingClientRect().width + (index === 0 ? 0 : gap), 0);
   }
 
   let offset = 0;
@@ -499,7 +499,7 @@ function initHallOfFame(){
   let dragging = false;
   let dragStartX = 0;
   let dragStartOffset = 0;
-  const SPEED = 0.45; /* px por frame */
+  const SPEED = 0.5; /* px por frame */
 
   function applyDepthEffect(){
     const viewportRect = viewport.getBoundingClientRect();
@@ -522,7 +522,7 @@ function initHallOfFame(){
     if(!paused && !dragging){
       offset -= SPEED;
       if(setWidth && Math.abs(offset) >= setWidth){
-        offset += setWidth;
+        offset = 0;
       }
     }
     track.style.transform = `translateX(${offset}px)`;
@@ -549,8 +549,8 @@ function initHallOfFame(){
     const delta = e.clientX - dragStartX;
     offset = dragStartOffset + delta;
     if(setWidth){
-      if(offset > 0) offset -= setWidth;
-      if(Math.abs(offset) >= setWidth * 2) offset += setWidth;
+      if(offset > 0) offset = 0;
+      if(offset < -setWidth) offset = -setWidth;
     }
   });
   function endDrag(){

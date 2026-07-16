@@ -785,6 +785,14 @@ table{ border-collapse: collapse; width: 100%; }
 /* --------------------------- EQUIPES --------------------------- */
 .teams{ display: block; }
 .slider--teams .slider__viewport{ border-radius: var(--radius-md); }
+.slider--teams .slider__slide{
+  flex: 0 0 100%;
+  display: block;
+  min-height: unset;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
 .team-slider__grid{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1592,12 +1600,27 @@ body:not(.admin-body) main{ display: none; }
     align-items: center;
     width: 80%;
     max-width: 600px;
+    opacity: 0;
+    animation: dmgFadeIn 1.15s cubic-bezier(.22,.9,.32,1) 0.15s forwards;
 }
 
 /* Estilização do SVG */
 .dmg-logo {
     width: 100%;
     height: auto;
+    opacity: 0;
+    animation: dmgFadeIn 1.15s cubic-bezier(.22,.9,.32,1) 0.1s forwards;
+}
+
+@keyframes dmgFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .dmg-path {
