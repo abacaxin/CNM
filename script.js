@@ -923,7 +923,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const splash = document.getElementById('splash-screen');
-    const mainContent = document.getElementById('main-content');
+    const mainContent = document.getElementById('main-content') || document.querySelector('main');
     const paths = document.querySelectorAll('.dmg-path');
     const subtext = document.querySelector('.subtext');
 
@@ -933,7 +933,7 @@ document.addEventListener('DOMContentLoaded', () => {
         glowColor: '#FF3333',   // Brilho ligeiramente mais claro
         drawDuration: 3.5,      // Duração da revelação das letras
         fadeDuration: 1.0,      // Duração do fade out da intro
-        subtextDelay: 0.5,      // Delay para o texto secundário aparecer
+        subtextDelay: 0.2,      // Delay para o texto secundário aparecer
         holdTime: 1.5           // Tempo que a logo fica acesa antes de sumir
     };
 
@@ -990,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tl.to(subtext, {
             opacity: 1,
             y: 0,
-            duration: 1.2,
+            duration: 0.9,
             ease: "power2.out"
         }, `+=${config.subtextDelay}`);
 
