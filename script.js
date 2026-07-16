@@ -803,3 +803,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFooterYear();
   initScrollReveal();
 });
+
+function startDMGIntro() {
+
+    if (localStorage.getItem("dmg_intro_seen")) {
+        document.getElementById("dmg-intro").remove();
+        return;
+    }
+
+    localStorage.setItem("dmg_intro_seen", "true");
+
+    const paths = document.querySelectorAll(".dmg-logo path");
+
+    paths.forEach(path => {
+        const length = path.getTotalLength();
+
+        path.style.strokeDasharray = length;
+        path.style.strokeDashoffset = length;
+    });
+
+    gsap.to(paths, {
+        strokeDashoffset: 0,
+        duration: 1.8,
+        ease: "power2.out"
+    });
+
+    gsap.to(".dmg-subtitle", {
+        opacity: 1,
+        delay: 1.5,
+        duration: 0.8
+    });
+
+    gsap.to("#dmg-intro", {
+        opacity: 0,
+        delay: 3.5,
+        duration: 1,
+        onComplete: () => {
+            document.getElementById("dmg-intro").remove();
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    startDMGIntro();
+});
