@@ -75,6 +75,33 @@
   const STATUS_LABELS = { proxima: 'A seguir', andamento: 'Ao vivo', finalizada: 'Finalizada' };
   function raceStatusLabel(status) { return STATUS_LABELS[status] || 'A seguir'; }
 
+  /* ---------------- pontuação (fonte única) ----------------
+     Classificação: sempre 5 posições pontuando, mesmo valor para
+     corrida normal ou de duelo.
+     Corrida: a tabela muda conforme o tipo do GP. A tabela normal é
+     oficial e fixa; a de duelo é um PLACEHOLDER (ainda não há tabela
+     oficial) isolado nesta constante para facilitar a substituição
+     futura sem tocar em nenhuma outra parte do sistema. */
+
+  const RACE_TYPES = ['normal', 'duelo'];
+  function normalizeRaceType(type) { return RACE_TYPES.includes(type) ? type : 'normal'; }
+
+  const QUALIFYING_POINTS = { 1: 5, 2: 4, 3: 3, 4: 2, 5: 1 };
+  const QUALIFYING_POSITIONS = 5;
+
+  const RACE_POINTS = {
+    /* tabela oficial da corrida normal (15 posições pontuando) */
+    normal: { 1: 30, 2: 25, 3: 22, 4: 20, 5: 18, 6: 16, 7: 15, 8: 12, 9: 10, 10: 9, 11: 7, 12: 5, 13: 3, 14: 2, 15: 1 },
+    /* PLACEHOLDER — corrida de duelo (16 posições pontuando); substituir
+       pela tabela oficial assim que ela existir, sem alterar mais nada */
+    duelo: { 1: 30, 2: 27, 3: 24, 4: 22, 5: 20, 6: 18, 7: 16, 8: 14, 9: 12, 10: 10, 11: 8, 12: 6, 13: 4, 14: 3, 15: 2, 16: 1 }
+  };
+  const RACE_POSITIONS = { normal: 15, duelo: 16 };
+
+  function getQualifyingPoints(position) { return QUALIFYING_POINTS[position] || 0; }
+  function getRacePoints(raceType, position) { return (RACE_POINTS[normalizeRaceType(raceType)] || RACE_POINTS.normal)[position] || 0; }
+  function getRacePositionsCount(raceType) { return RACE_POSITIONS[normalizeRaceType(raceType)] || RACE_POSITIONS.normal; }
+
   /* ---------------- normalizadores (toleram documentos legados) ---------------- */
 
   function normalizeNews(doc) {
@@ -101,7 +128,8 @@
       id: doc.id,
       name: String(doc.name || '').trim(),
       circuit: String(doc.circuit || '').trim(),
-      dateTime
+      dateTime,
+      type: normalizeRaceType(doc.type)
     };
   }
 
@@ -110,7 +138,8 @@
       id: doc.id,
       name: String(doc.name || '').trim(),
       base: String(doc.base || '').trim(),
-      color: doc.color || '#E10600'
+      color: doc.color || '#E10600',
+      logoUrl: String(doc.logoUrl || '').trim()
     };
   }
 
@@ -148,11 +177,23 @@
         lapTime: String(entry.lapTime || '').trim()
       }))
       .sort((a, b) => a.position - b.position);
+
+    /* resultado da classificação (quali): mesmo formato de entries, sem lapTime */
+    const qualifying = (Array.isArray(doc.qualifying) ? doc.qualifying : [])
+      .filter((entry) => entry && entry.driverId)
+      .map((entry) => ({
+        driverId: entry.driverId,
+        position: Number(entry.position) || 0,
+        points: Number(entry.points) || 0
+      }))
+      .sort((a, b) => a.position - b.position);
+
     return {
       id: doc.id,
       raceId: doc.raceId || '',
       publishedAt: String(doc.publishedAt || ''),
-      entries
+      entries,
+      qualifying
     };
   }
 
@@ -172,15 +213,23 @@
   /* mapa driverId -> { points, wins, podiums, races }, calculado dos resultados */
   function getDriverStats(drivers, results) {
     const stats = new Map(drivers.map((driver) => [driver.id, { points: 0, wins: 0, podiums: 0, races: 0 }]));
-    results.forEach((result) => (result.entries || []).forEach((entry) => {
-      const record = stats.get(entry.driverId);
-      if (!record) return;
-      record.points += Number(entry.points || 0);
-      record.races += 1;
-      const position = Number(entry.position);
-      if (position === 1) record.wins += 1;
-      if (position >= 1 && position <= 3) record.podiums += 1;
-    }));
+    results.forEach((result) => {
+      (result.entries || []).forEach((entry) => {
+        const record = stats.get(entry.driverId);
+        if (!record) return;
+        record.points += Number(entry.points || 0);
+        record.races += 1;
+        const position = Number(entry.position);
+        if (position === 1) record.wins += 1;
+        if (position >= 1 && position <= 3) record.podiums += 1;
+      });
+      /* pontos da classificação somam ao campeonato, mas não contam como vitória/pódio/corrida */
+      (result.qualifying || []).forEach((entry) => {
+        const record = stats.get(entry.driverId);
+        if (!record) return;
+        record.points += Number(entry.points || 0);
+      });
+    });
     return stats;
   }
 
@@ -242,6 +291,12 @@
     raceStatus,
     racePhase,
     raceStatusLabel,
+    normalizeRaceType,
+    getQualifyingPoints,
+    getRacePoints,
+    getRacePositionsCount,
+    QUALIFYING_POSITIONS,
+    RACE_TYPES,
     normalizeNews,
     normalizeRace,
     normalizeTeam,

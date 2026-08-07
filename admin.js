@@ -37,6 +37,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(`panel-${tab.dataset.tab}`).classList.add('is-active');
   }));
 
+  /* etapa: escolher outra corrida re-renderiza os grupos de resultado
+     (nº de posições e tabela de pontos mudam entre normal/duelo) */
+  document.getElementById('resultRace').addEventListener('change', () => renderResultEntries());
+
+  /* etapa: toggle Normal/Duelo — grava o valor no input oculto "type" */
+  const raceTypeToggle = document.getElementById('raceTypeToggle');
+  const raceTypeInput = raceTypeToggle.querySelector('input[name="type"]');
+  function setRaceType(value) {
+    raceTypeInput.value = value;
+    raceTypeToggle.querySelectorAll('.toggle-switch__option').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.value === value));
+  }
+  raceTypeToggle.querySelectorAll('.toggle-switch__option').forEach((btn) => btn.addEventListener('click', () => setRaceType(btn.dataset.value)));
+
   async function refresh() {
     try {
       const data = await service.loadPublicData();
@@ -60,9 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(id).innerHTML = rows.length ? rows.map((row) => `<article class="admin-list__item"><div>${markup(row)}</div><div class="list-actions"><button class="btn btn--ghost btn--sm" data-action="edit" data-collection="${collection}" data-id="${row.id}">Editar</button><button class="btn btn--danger btn--sm" data-action="delete" data-collection="${collection}" data-id="${row.id}">Excluir</button></div></article>`).join('') : '<p class="admin-empty">Nenhum item cadastrado.</p>';
   }
 
-  const F1_POINTS = { 1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1 };
-  const MAX_POSITIONS = 22;
-  function getF1Points(position) { return F1_POINTS[position] || 0; }
+  const QUALIFYING_POSITIONS = service.QUALIFYING_POSITIONS;
+  function getQualifyingPoints(position) { return service.getQualifyingPoints(position); }
+  function getRacePoints(raceType, position) { return service.getRacePoints(raceType, position); }
+  function getRacePositionsCount(raceType) { return service.getRacePositionsCount(raceType); }
+  function currentRaceType() {
+    const raceId = document.getElementById('resultRace').value;
+    return state.races.find((race) => race.id === raceId)?.type || 'normal';
+  }
 
   function formatRaceDateTime(dateTime) {
     const date = new Date(dateTime || '');
@@ -90,15 +108,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return html;
   }
 
-  /* atualiza apenas as opções dos seletores existentes (sem recriá-los),
+  /* atualiza apenas as opções dos seletores de um grupo (sem recriá-los),
      preservando o valor selecionado de cada posição e o foco do usuário */
-  function refreshDriverOptions() {
-    const selects = [];
-    for (let pos = 1; pos <= MAX_POSITIONS; pos++) {
-      const el = document.querySelector(`select[name="driver-${pos}"]`);
-      if (el) selects.push(el);
-    }
-    const taken = new Set(selects.map((el) => el.value).filter(Boolean));
+  function refreshDriverOptions(namePrefix) {
+    const selects = document.querySelectorAll(`select[name^="${namePrefix}"]`);
+    const taken = new Set(Array.from(selects).map((el) => el.value).filter(Boolean));
     selects.forEach((el) => {
       const current = el.value;
       el.innerHTML = driverOptionsHtml(current, taken);
@@ -107,17 +121,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function clearResultDraft() {
-    Object.keys(resultDraft).forEach((key) => delete resultDraft[key]);
+    resultDraft.entries = {};
+    resultDraft.qualifying = {};
   }
+  clearResultDraft();
 
-  /* monta as linhas de posição uma única vez; a troca de piloto apenas
-     atualiza as opções dos demais seletores, sem destruir/recriar os campos */
-  function renderResultEntries() {
-    const container = document.getElementById('resultEntriesContainer');
-    container.innerHTML = '';
+  /* monta um grupo de posições (classificação ou corrida); a troca de
+     piloto apenas atualiza as opções dos demais seletores do MESMO
+     grupo, sem destruir/recriar os campos */
+  function renderEntryGroup({ container, title, draftKey, namePrefix, positions, pointsFor, withTime }) {
+    const group = document.createElement('div');
+    group.className = 'result-entries-group';
 
-    for (let pos = 1; pos <= MAX_POSITIONS; pos++) {
-      const currentValue = resultDraft[pos]?.driverId || '';
+    const heading = document.createElement('p');
+    heading.className = 'result-entries-group__title';
+    heading.textContent = title;
+    group.appendChild(heading);
+
+    for (let pos = 1; pos <= positions; pos++) {
+      const draft = resultDraft[draftKey];
+      const currentValue = draft[pos]?.driverId || '';
 
       const posDiv = document.createElement('div');
       posDiv.className = 'result-entry';
@@ -131,15 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
       label.textContent = `Posição ${pos}`;
 
       const select = document.createElement('select');
-      select.name = `driver-${pos}`;
+      select.name = `${namePrefix}${pos}`;
       select.innerHTML = driverOptionsHtml(currentValue, new Set());
       select.value = currentValue;
       select.style.gridColumn = '1';
 
       const pointsInput = document.createElement('input');
       pointsInput.type = 'number';
-      pointsInput.name = `points-${pos}`;
-      pointsInput.value = getF1Points(pos);
+      pointsInput.name = `${namePrefix}points-${pos}`;
+      pointsInput.value = pointsFor(pos);
       pointsInput.placeholder = 'Pontos';
       pointsInput.style.gridColumn = '2';
       pointsInput.readOnly = true;
@@ -148,31 +171,61 @@ document.addEventListener('DOMContentLoaded', () => {
       pointsInput.style.opacity = '0.7';
 
       let timeInput = null;
-      if (pos <= 3) {
+      if (withTime && pos <= 3) {
         timeInput = document.createElement('input');
         timeInput.type = 'text';
-        timeInput.name = `time-${pos}`;
+        timeInput.name = `${namePrefix}time-${pos}`;
         timeInput.placeholder = 'Tempo (ex: 1:23.456)';
-        timeInput.value = resultDraft[pos]?.lapTime || '';
+        timeInput.value = draft[pos]?.lapTime || '';
         timeInput.style.gridColumn = '1 / -1';
         timeInput.addEventListener('input', () => {
-          resultDraft[pos] = { ...(resultDraft[pos] || {}), lapTime: timeInput.value };
+          draft[pos] = { ...(draft[pos] || {}), lapTime: timeInput.value };
         });
       }
 
       select.addEventListener('change', () => {
-        resultDraft[pos] = { ...(resultDraft[pos] || {}), driverId: select.value, points: getF1Points(pos) };
-        refreshDriverOptions();
+        draft[pos] = { ...(draft[pos] || {}), driverId: select.value, points: pointsFor(pos) };
+        refreshDriverOptions(namePrefix);
       });
 
       posDiv.appendChild(label);
       posDiv.appendChild(select);
       posDiv.appendChild(pointsInput);
       if (timeInput) posDiv.appendChild(timeInput);
-      container.appendChild(posDiv);
+      group.appendChild(posDiv);
     }
 
-    refreshDriverOptions();
+    container.appendChild(group);
+    refreshDriverOptions(namePrefix);
+  }
+
+  /* corrida normal: 15 pilotos pontuando, tabela fixa.
+     corrida de duelo: 16 pilotos pontuando, tabela isolada (placeholder).
+     a classificação pontua sempre 5 posições, nos dois formatos. */
+  function renderResultEntries() {
+    const container = document.getElementById('resultEntriesContainer');
+    container.innerHTML = '';
+    const raceType = currentRaceType();
+
+    renderEntryGroup({
+      container,
+      title: 'Classificação (Qualifying)',
+      draftKey: 'qualifying',
+      namePrefix: 'quali-driver-',
+      positions: QUALIFYING_POSITIONS,
+      pointsFor: getQualifyingPoints,
+      withTime: false
+    });
+
+    renderEntryGroup({
+      container,
+      title: raceType === 'duelo' ? 'Corrida (Duelo — 16 pilotos)' : 'Corrida (Normal — 15 pilotos)',
+      draftKey: 'entries',
+      namePrefix: 'driver-',
+      positions: getRacePositionsCount(raceType),
+      pointsFor: (pos) => getRacePoints(raceType, pos),
+      withTime: true
+    });
   }
 
   function render() {
@@ -183,9 +236,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderList('driversList', 'drivers', state.drivers, (item) => `<strong>#${escapeHtml(item.number)} ${escapeHtml(item.name)}</strong><span>${escapeHtml(teamName(item.teamId))} · ID: ${escapeHtml(item.id)}</span>`);
     renderList('racesList', 'races', state.races, (item) => {
       const status = service.raceStatus(item);
-      return `<strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(formatRaceDateTime(item.dateTime))} · ${service.raceStatusLabel(status)}</span>`;
+      return `<strong>${escapeHtml(item.name)} <span class="race-type-badge">${item.type === 'duelo' ? 'Duelo' : 'Normal'}</span></strong><span>${escapeHtml(formatRaceDateTime(item.dateTime))} · ${service.raceStatusLabel(status)}</span>`;
     });
-    renderList('resultsList', 'results', state.results, (item) => `<strong>${escapeHtml(state.races.find((race) => race.id === item.raceId)?.name || 'Etapa removida')}</strong><span>${scoringDriversCount(item)} pilotos pontuaram</span>`);
+    renderList('resultsList', 'results', state.results, (item) => `<strong>${escapeHtml(state.races.find((race) => race.id === item.raceId)?.name || 'Etapa removida')}</strong><span>${scoringDriversCount(item)} na corrida · ${(item.qualifying || []).length} na classificação</span>`);
     renderResultEntries();
   }
 
@@ -201,19 +254,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (form.id === 'resultForm') {
+      const raceType = state.races.find((race) => race.id === data.raceId)?.type || 'normal';
+
+      const qualifying = [];
+      for (let pos = 1; pos <= QUALIFYING_POSITIONS; pos++) {
+        const driverId = data[`quali-driver-${pos}`];
+        if (driverId) qualifying.push({ driverId, position: pos, points: getQualifyingPoints(pos) });
+        delete data[`quali-driver-${pos}`];
+        delete data[`quali-driver-points-${pos}`];
+      }
+
       const entries = [];
-      for (let pos = 1; pos <= MAX_POSITIONS; pos++) {
+      for (let pos = 1; pos <= getRacePositionsCount(raceType); pos++) {
         const driverId = data[`driver-${pos}`];
-        const lapTime = String(data[`time-${pos}`] || '').trim();
+        const lapTime = String(data[`driver-time-${pos}`] || '').trim();
         if (driverId) {
-          const entry = { driverId, position: pos, points: getF1Points(pos) };
+          const entry = { driverId, position: pos, points: getRacePoints(raceType, pos) };
           if (lapTime) entry.lapTime = lapTime;
           entries.push(entry);
         }
         delete data[`driver-${pos}`];
-        delete data[`points-${pos}`];
-        delete data[`time-${pos}`];
+        delete data[`driver-points-${pos}`];
+        delete data[`driver-time-${pos}`];
       }
+
+      data.qualifying = qualifying;
       data.entries = entries;
       data.publishedAt = data.publishedAt ? new Date(data.publishedAt).toISOString() : new Date().toISOString();
     }
@@ -250,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else await db().collection(collection).add(data);
       form.reset(); form.elements.id.value = '';
       if (form.id === 'resultForm') { clearResultDraft(); }
+      if (form.id === 'raceForm') { setRaceType('normal'); }
       show('Alteração salva e publicada.');
       await refresh();
     } catch (error) { show(error.message || 'Não foi possível salvar a alteração.', true); }
@@ -262,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
       clearResultDraft();
       renderResultEntries();
     }
+    if (form.id === 'raceForm') { setRaceType('normal'); }
   }));
 
   document.addEventListener('click', async (event) => {
@@ -288,15 +355,23 @@ document.addEventListener('DOMContentLoaded', () => {
          new Date().toISOString() deslocava a data em fusos negativos */
       const [datePart = ''] = String(item.dateTime || '').split('T');
       if (form.elements.date) form.elements.date.value = datePart;
+      setRaceType(item.type === 'duelo' ? 'duelo' : 'normal');
     }
 
     if (collection === 'results') {
       if (form.elements.publishedAt) form.elements.publishedAt.value = toLocalInputValue(item.publishedAt);
+      const raceType = state.races.find((race) => race.id === item.raceId)?.type || 'normal';
       clearResultDraft();
-      (item.entries || []).forEach((entry) => {
-        resultDraft[entry.position] = {
+      (item.qualifying || []).forEach((entry) => {
+        resultDraft.qualifying[entry.position] = {
           driverId: entry.driverId || '',
-          points: Number(entry.points || getF1Points(entry.position)),
+          points: Number(entry.points || getQualifyingPoints(entry.position))
+        };
+      });
+      (item.entries || []).forEach((entry) => {
+        resultDraft.entries[entry.position] = {
+          driverId: entry.driverId || '',
+          points: Number(entry.points || getRacePoints(raceType, entry.position)),
           lapTime: entry.lapTime || ''
         };
       });
