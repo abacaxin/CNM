@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Titillium+Web:ital,wght@0,600;0,700;0,900;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260718">
-  <link rel="stylesheet" href="admin.css?v=20260718">
+  <link rel="stylesheet" href="style.css?v=20260807">
+  <link rel="stylesheet" href="admin.css?v=20260807">
 </head>
 <body class="admin-body">
   <header class="admin-header"><div class="container admin-header__inner">
@@ -41,18 +41,18 @@
 
     <section class="admin-panel" id="panel-grid">
       <div class="panel-head"><div><p class="admin-kicker">SETOR 03</p><h2>Grid atual</h2></div><p>Cadastre equipes e pilotos. A posição e os pontos não são editados aqui.</p></div>
-      <div class="admin-split"><div><h3>Equipes</h3><form id="teamForm" class="admin-form" data-collection="teams"><input type="hidden" name="id"><label>Nome<input name="name" required></label><label>Sede/base<input name="base" required></label><label>Cor<input name="color" type="color" value="#E10600"></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar equipe</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="teamsList" class="admin-list"></div></div>
+      <div class="admin-split"><div><h3>Equipes</h3><form id="teamForm" class="admin-form" data-collection="teams"><input type="hidden" name="id"><label>Nome<input name="name" required></label><label>Sede/base<input name="base" required></label><label>Cor<input name="color" type="color" value="#E10600"></label><label>URL do Logo<input name="logoUrl" type="url" placeholder="https://exemplo.com/logo.png"><span class="field-help">Exibido no slide de Equipes (opcional)</span></label><div class="form-actions"><button class="btn btn--primary" type="submit">Salvar equipe</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="teamsList" class="admin-list"></div></div>
       <div><h3>Pilotos</h3><form id="driverForm" class="admin-form admin-form--grid" data-collection="drivers"><input type="hidden" name="id"><label>Nome<input name="name" required></label><label>Número<input name="number" type="number" min="0" required></label><label>Sigla do país<input name="nat" maxlength="3" required placeholder="BRA"></label><label>Equipe<select name="teamId" id="driverTeam" required></select></label><label>Cor da equipe<input name="color" type="color" value="#E10600"></label><label class="span-2">URL da Foto<input name="photoUrl" type="url" placeholder="https://exemplo.com/piloto.jpg"><span class="field-help">URL da foto do piloto para exibir no card</span></label><label class="checkbox-label"><input type="checkbox" name="showInHallOfFame"> Exibir no Hall da Fama</label><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar piloto</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="driversList" class="admin-list"></div></div></div>
     </section>
 
     <section class="admin-panel" id="panel-calendar">
       <div class="panel-head"><div><p class="admin-kicker">SETOR 04</p><h2>Calendário</h2></div><p>Controle as etapas exibidas e seus estados.</p></div>
-      <form id="raceForm" class="admin-form admin-form--grid" data-collection="races"><input type="hidden" name="id"><label>Grande Prêmio<input name="name" required placeholder="GP Nexus Park"></label><label>Circuito<input name="circuit" required></label><label>Data<input name="date" type="date" required><span class="field-help">Quali às 12:00 do dia; corrida das 00:00 às 00:00 do dia seguinte</span></label><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar etapa</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="racesList" class="admin-list"></div>
+      <form id="raceForm" class="admin-form admin-form--grid" data-collection="races"><input type="hidden" name="id"><label>Grande Prêmio<input name="name" required placeholder="GP Nexus Park"></label><label>Circuito<input name="circuit" required></label><label>Data<input name="date" type="date" required><span class="field-help">Quali às 12:00 do dia; corrida das 00:00 às 00:00 do dia seguinte</span></label><label class="span-2">Tipo de corrida<span class="toggle-switch" id="raceTypeToggle"><button type="button" class="toggle-switch__option is-active" data-value="normal">Corrida Normal</button><button type="button" class="toggle-switch__option" data-value="duelo">Corrida de Duelo</button><input type="hidden" name="type" value="normal"></span><span class="field-help">Define quantos pilotos pontuam e a tabela de pontos usada no cadastro de resultados</span></label><div class="form-actions span-2"><button class="btn btn--primary" type="submit">Salvar etapa</button><button class="btn btn--ghost reset-form" type="button">Limpar</button></div></form><div id="racesList" class="admin-list"></div>
     </section>
   </main>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script defer src="firebase-config.js?v=20260718"></script><script defer src="firebase-data.js?v=20260718"></script><script defer src="admin.js?v=20260718"></script>
+  <script defer src="firebase-config.js?v=20260807"></script><script defer src="firebase-data.js?v=20260807"></script><script defer src="admin.js?v=20260807"></script>
 </body>
 </html>

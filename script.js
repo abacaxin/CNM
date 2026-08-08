@@ -774,6 +774,37 @@ function getReadableTextColor(hexColor) {
   return luminance > 0.58 ? '#111111' : '#ffffff';
 }
 
+function driverStandingCardMarkup(driver, standingsByName){
+  if(!driver){
+    return '<article class="team-driver-card team-driver-card--empty"><p>Piloto não cadastrado</p></article>';
+  }
+  const initials = String(driver.name || 'CNM').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const photo = driver.photoUrl
+    ? `<img class="team-driver-card__photo" src="${escapeHtml(driver.photoUrl)}" alt="${escapeHtml(driver.name)}" loading="lazy" onerror="this.remove()">`
+    : '';
+  const standing = standingsByName.get(driver.name);
+  const points = standing ? Number(standing.points) || 0 : Number(driver.points) || 0;
+  const champPos = standing?.pos ? `P${standing.pos}` : '—';
+  return `
+    <article class="team-driver-card" style="--driver-color:${escapeHtml(driver.color || '#E10600')}">
+      <div class="team-driver-card__plate">
+        <span class="team-driver-card__ghost-number">${escapeHtml(driver.number)}</span>
+        <span class="team-driver-card__monogram">${escapeHtml(initials)}</span>
+        ${photo}
+        <span class="team-driver-card__number">#${escapeHtml(driver.number)}</span>
+        ${driver.nat ? `<span class="team-driver-card__nat">${escapeHtml(driver.nat)}</span>` : ''}
+      </div>
+      <p class="team-driver-card__name">${escapeHtml(driver.name)}</p>
+      <p class="team-driver-card__team">${escapeHtml(driver.team || '')}</p>
+      <div class="team-driver-card__stats">
+        <div class="team-driver-card__stat"><span class="team-driver-card__stat-value">${points}</span><span class="team-driver-card__stat-label">Pontos</span></div>
+        <div class="team-driver-card__stat"><span class="team-driver-card__stat-value">${escapeHtml(champPos)}</span><span class="team-driver-card__stat-label">Campeonato</span></div>
+      </div>
+    </article>`;
+}
+
+/* um slide por equipe — cabeçalho com logo/nome centralizados e os dois
+   pilotos lado a lado em cards de mesmo tamanho (estilo apresentação de equipe) */
 function initTeams(){
   const track = document.getElementById('teamsTrack');
 
@@ -785,48 +816,35 @@ function initTeams(){
     return;
   }
 
-  const slides = TEAMS_DATA.reduce((groups, team, index) => {
-    if(index % 4 === 0) groups.push([]);
-    groups[groups.length - 1].push(team);
-    return groups;
-  }, []);
+  const standingsByName = new Map(STANDINGS_DATA.map((row) => [row.name, row]));
 
-  track.innerHTML = slides.map((group) => `
-    <div class="slider__slide">
-      <div class="team-slider__grid">
-        ${group.map((team) => {
-          const teamDrivers = DRIVERS_DATA.filter((driver) => driver.team === team.name);
-          const textColor = getReadableTextColor(team.color || '#E10600');
-          return `
-            <article class="team-card" style="--team-color:${escapeHtml(team.color || '#E10600')}; --team-text:${escapeHtml(textColor)}">
-              <div class="team-card__header">
-                <span class="team-card__swatch"></span>
-                <div>
-                  <p class="team-card__name">${escapeHtml(team.name)}</p>
-                  <p class="team-card__base">${escapeHtml(team.base)}</p>
-                </div>
-              </div>
-              <div class="team-card__drivers">
-                <p class="team-card__drivers-title">Pilotos</p>
-                ${teamDrivers.length ? `
-                  <div class="team-card__driver-list">
-                    ${teamDrivers.map((driver) => `
-                      <div class="team-driver">
-                        <span class="team-driver__number">#${escapeHtml(driver.number)}</span>
-                        <span class="team-driver__name">${escapeHtml(driver.name)}</span>
-                      </div>
-                    `).join('')}
-                  </div>
-                ` : '<p class="team-card__empty">Nenhum piloto cadastrado</p>'}
-              </div>
-            </article>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `).join('');
+  track.innerHTML = TEAMS_DATA.map((team) => {
+    const teamDrivers = DRIVERS_DATA.filter((driver) => driver.team === team.name);
+    const textColor = getReadableTextColor(team.color || '#E10600');
+    const monogram = team.name.split(' ').map((part) => part[0]).join('').slice(0, 3).toUpperCase();
+    const logo = team.logoUrl
+      ? `<img src="${escapeHtml(team.logoUrl)}" alt="${escapeHtml(team.name)}" loading="lazy" onerror="this.remove()">`
+      : '';
+    return `
+      <div class="slider__slide">
+        <article class="team-feature" style="--team-color:${escapeHtml(team.color || '#E10600')}; --team-text:${escapeHtml(textColor)}">
+          <div class="team-feature__header">
+            <div class="team-feature__logo">
+              <span class="team-feature__logo-mark">${escapeHtml(monogram)}</span>
+              ${logo}
+            </div>
+            <p class="team-feature__name">${escapeHtml(team.name)}</p>
+            <p class="team-feature__base">${escapeHtml(team.base)}</p>
+          </div>
+          <div class="team-feature__drivers">
+            ${driverStandingCardMarkup(teamDrivers[0], standingsByName)}
+            ${driverStandingCardMarkup(teamDrivers[1], standingsByName)}
+          </div>
+        </article>
+      </div>`;
+  }).join('');
 
-  buildSlider({ sliderId: 'teamsSlider', trackId: 'teamsTrack', dotsId: 'teamsDots', prevId: 'teamsPrev', nextId: 'teamsNext', total: slides.length, dotLabel: 'Ir para equipe' });
+  buildSlider({ sliderId: 'teamsSlider', trackId: 'teamsTrack', dotsId: 'teamsDots', prevId: 'teamsPrev', nextId: 'teamsNext', total: TEAMS_DATA.length, dotLabel: 'Ir para equipe' });
 }
 
 /* ===================================================================
